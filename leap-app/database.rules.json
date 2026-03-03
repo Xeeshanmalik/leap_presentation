@@ -1,0 +1,28 @@
+{
+    "rules": {
+        ".read": false,
+        ".write": false,
+        "quiz": {
+            "state": {
+                ".read": true,
+                ".write": true
+            },
+            "players": {
+                ".read": true,
+                "$playerId": {
+                    ".write": true
+                }
+            },
+            "answers": {
+                ".read": true,
+                "$playerId": {
+                    ".write": true
+                }
+            }
+        },
+        "gameState": {
+            ".read": true,
+            ".write": true
+        }
+    }
+}
