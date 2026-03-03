@@ -1,15 +1,17 @@
 import { motion } from "framer-motion";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useGameState } from "../../hooks/useGameState";
 
 export default function SlidePositionalEncoding({ isExportMode }) {
-    const [synthesized, setSynthesized] = useState(false);
+    const { slideData, setSlideData, role } = useGameState();
+    const synthesized = slideData?.[5]?.synthesized || false;
 
     // Export Mode: Force final view
     useEffect(() => {
-        if (isExportMode) {
-            setSynthesized(true);
+        if (isExportMode && role === 'presenter') {
+            setSlideData(5, { synthesized: true });
         }
-    }, [isExportMode]);
+    }, [isExportMode, role, setSlideData]);
 
     // Generate Wave Data
     // We need precise paths for Framer Motion to morph between
@@ -174,12 +176,12 @@ export default function SlidePositionalEncoding({ isExportMode }) {
                         </div>
                     </div>
 
-                    {!isExportMode && (
+                    {!isExportMode && role === 'presenter' && (
                         <button
-                            onClick={() => setSynthesized(!synthesized)}
+                            onClick={() => setSlideData(5, { synthesized: !synthesized })}
                             className={`px-8 py-3 rounded-full text-sm font-bold tracking-wider transition-all duration-300 shadow-lg ${synthesized
-                                    ? "bg-purple/20 border border-purple text-purple hover:bg-purple/30 shadow-purple/20"
-                                    : "bg-teal/10 border border-teal text-teal hover:bg-teal/20 shadow-teal/20"
+                                ? "bg-purple/20 border border-purple text-purple hover:bg-purple/30 shadow-purple/20"
+                                : "bg-teal/10 border border-teal text-teal hover:bg-teal/20 shadow-teal/20"
                                 }`}
                         >
                             {synthesized ? "RESET SIGNAL" : "INITIATE SYNTHESIS"}
@@ -212,8 +214,8 @@ function Marker({ x, yStart, yEnd, valRaw, valCombined, synthesized, label, dela
             <foreignObject x="-60" y="-95" width="120" height="50">
                 <motion.div
                     className={`text-center p-1 rounded border backdrop-blur-md text-[10px] font-mono shadow-lg ${synthesized
-                            ? "border-purple text-purple bg-purple/10"
-                            : "border-teal text-teal bg-teal/10"
+                        ? "border-purple text-purple bg-purple/10"
+                        : "border-teal text-teal bg-teal/10"
                         }`}
                 >
                     <div className="font-bold mb-[1px]">{label}</div>

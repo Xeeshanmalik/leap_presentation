@@ -1,9 +1,26 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
+import { useGameState } from "../../hooks/useGameState";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine, ReferenceDot } from "recharts";
 
 export default function SlideForecasting() {
-    const [domain, setDomain] = useState('Energy');
+    const { slideData, setSlideData, role } = useGameState();
+    const domain = slideData?.[12]?.domain || 'Energy';
+    const hoveredDay = slideData?.[12]?.hoveredDay;
+
+    const handleMouseMove = (state) => {
+        if (role === 'presenter' && state && state.activePayload && state.activePayload.length > 0) {
+            const day = state.activePayload[0].payload.day;
+            if (day !== hoveredDay) {
+                setSlideData(12, { ...slideData?.[12], hoveredDay: day });
+            }
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (role === 'presenter' && hoveredDay !== null) {
+            setSlideData(12, { ...slideData?.[12], hoveredDay: null });
+        }
+    };
 
     const generateData = (type) => {
         return Array.from({ length: 30 }, (_, i) => {
@@ -25,6 +42,8 @@ export default function SlideForecasting() {
     const data = generateData(domain);
     const color = domain === 'Energy' ? '#00d4ff' : domain === 'Finance' ? '#f59e0b' : '#8b5cf6';
 
+    const hoveredData = hoveredDay !== null && hoveredDay !== undefined ? data.find(d => d.day === hoveredDay) : null;
+
     return (
         <div className="flex flex-col items-center justify-center h-full max-w-5xl mx-auto px-6 relative z-10">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-teal font-mono text-sm tracking-[3px] uppercase mb-4 opacity-70">
@@ -39,10 +58,10 @@ export default function SlideForecasting() {
                 {['Energy', 'Finance', 'Weather'].map(d => (
                     <button
                         key={d}
-                        onClick={() => setDomain(d)}
+                        onClick={() => { if (role === 'presenter') setSlideData(12, { ...slideData?.[12], domain: d }); }}
                         className={`px-6 py-2 rounded-full border text-sm font-bold transition-all ${domain === d
-                                ? `bg-white/10 border-white text-white shadow`
-                                : 'bg-transparent border-white/20 text-muted hover:border-white/40'
+                            ? `bg-white/10 border-white text-white shadow`
+                            : 'bg-transparent border-white/20 text-muted hover:border-white/40'
                             }`}
                     >
                         {d}
@@ -50,9 +69,22 @@ export default function SlideForecasting() {
                 ))}
             </div>
 
-            <div className="w-full max-w-4xl h-80 bg-white/5 border border-white/10 rounded-xl p-4 mb-8">
+            <div className="w-full max-w-4xl h-80 bg-white/5 border border-white/10 rounded-xl p-4 mb-8 relative">
+                {/* Synced Custom Tooltip for Audience */}
+                {hoveredData && (
+                    <div className="absolute top-4 right-4 bg-[#0a0f1e]/90 backdrop-blur-md border border-white/20 p-3 rounded-lg text-xs text-white z-50 pointer-events-none shadow-xl border-l-[3px]" style={{ borderLeftColor: color }}>
+                        <div className="font-bold mb-1 text-white/70">Day {hoveredData.day}</div>
+                        {hoveredData.past !== null && <div><span style={{ color }}>Value:</span> {hoveredData.past.toFixed(1)}</div>}
+                        {hoveredData.forecast !== null && <div><span style={{ color }}>Forecast:</span> {hoveredData.forecast.toFixed(1)}</div>}
+                        {hoveredData.upper !== null && <div className="text-white/50 mt-1">Bounds: {hoveredData.lower.toFixed(1)} - {hoveredData.upper.toFixed(1)}</div>}
+                    </div>
+                )}
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data}>
+                    <AreaChart
+                        data={data}
+                        onMouseMove={handleMouseMove}
+                        onMouseLeave={handleMouseLeave}
+                    >
                         <defs>
                             <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor={color} stopOpacity={0.3} />
@@ -63,6 +95,7 @@ export default function SlideForecasting() {
                             </pattern>
                         </defs>
 
+                        <XAxis dataKey="day" hide />
                         <YAxis hide domain={['auto', 'auto']} />
                         <Tooltip
                             contentStyle={{ backgroundColor: '#0a0f1e', borderColor: '#333' }}
@@ -76,6 +109,11 @@ export default function SlideForecasting() {
 
                         {/* Uncertainty Bounds (Simulated visually) */}
                         <Area type="monotone" dataKey="upper" stroke="none" fill="url(#diagonalHatch)" />
+
+                        {/* Synced Presenter Hover Line */}
+                        {hoveredDay !== null && hoveredDay !== undefined && (
+                            <ReferenceLine x={hoveredDay} stroke={color} strokeWidth={2} strokeDasharray="3 3" opacity={0.8} />
+                        )}
                     </AreaChart>
                 </ResponsiveContainer>
             </div>

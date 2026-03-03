@@ -23,7 +23,7 @@ import SlideLeaderboard from "../Slides/SlideLeaderboard";
 import SlideSummary from "../Slides/SlideSummary";
 
 /**
- * 25-slide structure — 3 sections + Q&A after each + Leaderboard before Summary:
+ * 25-slide structure — 3 sections content, then all Q&A, then Leaderboard:
  *
  * SECTION 1 — Introduction (slides 0–5)
  *   0  SlideTitle
@@ -32,28 +32,31 @@ import SlideSummary from "../Slides/SlideSummary";
  *   3  SlideAttentionIntuition
  *   4  SlideTokenization
  *   5  SlidePositionalEncoding
- *   6  SlideQA sectionIdx=0  ← Q&A
  *
- * SECTION 2 — Large Time Series Models (slides 7–16)
- *   7  SlideAttentionMechanism
- *   8  SlideMultiHeadAttention
- *   9  SlideFFN
- *   10 SlideScaling
- *   11 SlideArchitectures
- *   12 SlidePretraining
- *   13 SlideForecasting
- *   14 SlideFailureModes
- *   15 SlideBenchmarks
- *   16 SlideDecisionTree
- *   17 SlideQA sectionIdx=1  ← Q&A
+ * SECTION 2 — Large Time Series Models (slides 6–15)
+ *   6  SlideAttentionMechanism
+ *   7  SlideMultiHeadAttention
+ *   8  SlideFFN
+ *   9  SlideScaling
+ *   10 SlideArchitectures
+ *   11 SlidePretraining
+ *   12 SlideForecasting
+ *   13 SlideFailureModes
+ *   14 SlideBenchmarks
+ *   15 SlideDecisionTree
  *
- * SECTION 3 — Agentic AI (slides 18–21)
- *   18 SlideAgenticIntro
- *   19 SlideAgenticArch
- *   20 SlideAgenticOrchestration
- *   21 SlideAgenticDemo
- *   22 SlideQA sectionIdx=2  ← Q&A
+ * SECTION 3 — Agentic AI (slides 16–19)
+ *   16 SlideAgenticIntro
+ *   17 SlideAgenticArch
+ *   18 SlideAgenticOrchestration
+ *   19 SlideAgenticDemo
+ *   
+ * Q&A SECTIONS (slides 20-22)
+ *   20 SlideQA sectionIdx=0  ← Q&A 1
+ *   21 SlideQA sectionIdx=1  ← Q&A 2
+ *   22 SlideQA sectionIdx=2  ← Q&A 3
  *
+ * closing
  *   23 SlideLeaderboard      ← Top-10 winners
  *   24 SlideSummary
  */
@@ -65,28 +68,28 @@ const slides = [
     SlideAttentionIntuition,   // 3
     SlideTokenization,         // 4
     SlidePositionalEncoding,   // 5
-    null,                      // 6  → Q&A sectionIdx=0
-    SlideAttentionMechanism,   // 7
-    SlideMultiHeadAttention,   // 8
-    SlideFFN,                  // 9
-    SlideScaling,              // 10
-    SlideArchitectures,        // 11
-    SlidePretraining,          // 12
-    SlideForecasting,          // 13
-    SlideFailureModes,         // 14
-    SlideBenchmarks,           // 15
-    SlideDecisionTree,         // 16
-    null,                      // 17 → Q&A sectionIdx=1
-    SlideAgenticIntro,         // 18
-    SlideAgenticArch,          // 19
-    SlideAgenticOrchestration, // 20
-    SlideAgenticDemo,          // 21
-    null,                      // 22 → Q&A sectionIdx=2
+    SlideAttentionMechanism,   // 6
+    SlideMultiHeadAttention,   // 7
+    SlideFFN,                  // 8
+    SlideScaling,              // 9
+    SlideArchitectures,        // 10
+    SlidePretraining,          // 11
+    SlideForecasting,          // 12
+    SlideFailureModes,         // 13
+    SlideBenchmarks,           // 14
+    SlideDecisionTree,         // 15
+    SlideAgenticIntro,         // 16
+    SlideAgenticArch,          // 17
+    SlideAgenticOrchestration, // 18
+    SlideAgenticDemo,          // 19
+    null,                      // 20  → Q&A sectionIdx=0
+    null,                      // 21  → Q&A sectionIdx=1
+    null,                      // 22  → Q&A sectionIdx=2
     SlideLeaderboard,          // 23 — Top-10 winners 🏆
     SlideSummary,              // 24
 ];
 
-const QA_SLIDE_MAP = { 6: 0, 17: 1, 22: 2 };
+const QA_SLIDE_MAP = { 20: 0, 21: 1, 22: 2 };
 
 const PlaceholderSlide = ({ index }) => (
     <div className="flex items-center justify-center h-full text-2xl text-muted font-mono">
@@ -102,7 +105,7 @@ export default function SlideRenderer({ slideIndex, ...props }) {
     if (QA_SLIDE_MAP[slideIndex] !== undefined) {
         return (
             <div className="w-full h-full">
-                <SlideQA sectionIdx={QA_SLIDE_MAP[slideIndex]} />
+                <SlideQA key={`qa-${slideIndex}`} sectionIdx={QA_SLIDE_MAP[slideIndex]} />
             </div>
         );
     }

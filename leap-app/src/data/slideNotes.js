@@ -82,7 +82,7 @@ export const slideNotes = [
     "Think of this as stamping a timestamp on every packet of information. But we've gotten smarter. We don't just say 'Step 1, Step 2'. We use frequencies—sines and cosines—so the model understands cycles. It knows that 'Step 1' and 'Step 25' are related if the cycle is 24 hours. It learns the rhythm of the universe before it even sees the data."
     `,
 
-    // Slide 7 (index 6): Q&A — Section 1: Introduction
+    // Slide 21 (index 20): Q&A — Section 1
     `[TIMING: 18:00 - 20:00]
 
     **Facilitator Notes — Q&A Round 1**
@@ -103,7 +103,7 @@ export const slideNotes = [
     • Pause after each explanation to let the insight land before moving on.
     `,
 
-    // Slide 8 (index 7): Attention Mechanism
+    // Slide 7 (index 6): Attention Mechanism
     `[TIMING: 18:00 - 21:00]
     
     **The Heartbeat: Attention**
@@ -118,7 +118,7 @@ export const slideNotes = [
     "When you see a diagonal line on this map, the model has discovered a Trend. When you see a grid pattern, it has discovered Seasonality. It's not magic; it's pattern matching at a scale no human can achieve."
     `,
 
-    // Slide 8: Multi-Head Attention
+    // Slide 8 (index 7): Multi-Head Attention
     `[TIMING: 21:00 - 24:00]
     
     **The Council of Experts**
@@ -133,7 +133,7 @@ export const slideNotes = [
     "They all look at the same data, but they see different things. The model combines their insights into a single, rich representation. This is why it works on chaotic real-world data where simple rules fail."
     `,
 
-    // Slide 9: FFN & LayerNorm
+    // Slide 9 (index 8): FFN & LayerNorm
     `[TIMING: 24:00 - 27:00]
     
     **Stabilizing the Signal**
@@ -147,7 +147,7 @@ export const slideNotes = [
     "This allows a model trained on 1990s prices (when coffee was $1) to predict 2024 prices (when coffee is $5). It learns the *dynamics*, not the *prices*."
     `,
 
-    // Slide 10: Scaling
+    // Slide 10 (index 9): Scaling
     `[TIMING: 27:00 - 30:00]
     
     **The Industrial Scale**
@@ -162,7 +162,7 @@ export const slideNotes = [
     "Imagine looking at a vibration sensor on a jet engine. 512k steps means we can see every shudder and shake for the last hour at high resolution, looking for the faintest whisper of a crack. Simple models see the noise; these models hear the signal."
     `,
 
-    // Slide 11: Key Architectures
+    // Slide 11 (index 10): Key Architectures
     `[TIMING: 30:00 - 33:00]
     
     **The Titans: Meet the Models**
@@ -178,7 +178,7 @@ export const slideNotes = [
     "**Moirai** (Salesforce): The universalist. It handles any frequency, any number of variables. It's the Swiss Army Knife."
     `,
 
-    // Slide 12: Pretraining
+    // Slide 12 (index 11): Pretraining
     `[TIMING: 33:00 - 36:00]
     
     **How It Learns physics**
@@ -192,7 +192,7 @@ export const slideNotes = [
     "By solving millions of these puzzles, the model doesn't just memorize data; it internalizes the laws of temporal dynamics. It creates a 'World Model' of how things change over time."
     `,
 
-    // Slide 13: Forecasting
+    // Slide 13 (index 12): Forecasting
     `[TIMING: 36:00 - 39:00]
     
     **The Holy Grail: Zero-Shot**
@@ -206,7 +206,7 @@ export const slideNotes = [
     "You show it *just a sliver* of your new data, and it says: 'Ah, I know this pattern. This looks like a retail launch curve.' And it predicts it. Instantly. No training. This is the death of the 'Cold Start' problem."
     `,
 
-    // Slide 13: Failure Modes & Mitigations
+    // Slide 14 (index 13): Failure Modes & Mitigations
     `[TIMING: 39:00 - 42:00]
     
     **The Warning Label: Risks & Fixes**
@@ -223,7 +223,7 @@ export const slideNotes = [
     "**The Fix (Adapters):** We use **LoRA (Low-Rank Adapters)**. Instead of retraining the 100B parameter brain, we just retrain a tiny 'shim' layer on the last month of data. It adapts instantly."
     `,
 
-    // Slide 15: Benchmarks
+    // Slide 15 (index 14): Benchmarks
     `[TIMING: 42:00 - 45:00]
     
     **Validation**
@@ -235,7 +235,7 @@ export const slideNotes = [
     "But a note of caution: On very simple, very clean data? A simple linear model is often competitive and 1000x cheaper. Intelligence is expensive. Use it where complexity demands it."
     `,
 
-    // Slide 16: Decision Tree
+    // Slide 16 (index 15): Decision Tree
     `[TIMING: 45:00 - 48:00]
     
     **The Engineer's Playbook**
@@ -249,7 +249,7 @@ export const slideNotes = [
     "**Scenario C:** You have a new problem, limited history, or complex multi-modal data. **This** is where you deploy the Foundation Models. Use **TimesFM** or **Moirai**. Use the cannon only when you need to breach the wall."
     `,
 
-    // Slide 18 (index 17): Q&A — Section 2: Large Time Series Models
+    // Slide 22 (index 21): Q&A — Section 2
     `[TIMING: 48:00 - 50:00]
 
     **Facilitator Notes — Q&A Round 2**
@@ -270,7 +270,7 @@ export const slideNotes = [
     • Q5: LoRA is highly relevant for enterprise users — note that full retraining a 100B model costs ~$2M at current GPU prices.
     `,
 
-    // Slide 19 (index 18): Agentic Intro — Paradigm Shift
+    // Slide 17 (index 16): Agentic Intro — Paradigm Shift
     `[TIMING: 48:00 - 51:00]
 
     **The Paradigm Shift: From Prediction to Action**
@@ -348,7 +348,7 @@ export const slideNotes = [
     "Questions? I'll take them now, or you can scan the QR code on the final slide to access the repo and run this yourself."
     `,
 
-    // Slide 23 (index 22): Q&A — Section 3: Agentic AI
+    // Slide 23 (index 22): Q&A — Section 3
     `[TIMING: 60:00 - 62:00]
 
     **Facilitator Notes — Q&A Round 3**

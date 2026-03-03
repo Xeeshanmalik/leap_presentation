@@ -53,7 +53,7 @@ export default function SlideTitle() {
                 </div>
                 <div className="text-left">
                     <div className="text-white font-syne font-bold text-sm">Dr. Zeeshan Malik</div>
-                    <div className="text-gold font-mono text-xs uppercase tracking-wider">Lead Research Scientist</div>
+                    <div className="text-gold font-mono text-xs uppercase tracking-wider">Sr. AI Lead Data Scientist</div>
                 </div>
             </motion.div>
 

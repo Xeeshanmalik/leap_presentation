@@ -9,9 +9,30 @@ export const GameStateProvider = ({ children, role = "audience" }) => {
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
     const [quizStatus, setQuizStatus] = useState("inactive"); // inactive, active, closed
     const [playerScores, setPlayerScores] = useState({});
+    const [slideData, setSlideDataState] = useState({}); // Stores arbitrary slide states
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
+        const isFirebaseConfigured = () => {
+            const key = import.meta.env.VITE_FIREBASE_API_KEY || "";
+            return key.length > 10 && !key.startsWith("your-");
+        };
+
+        let unsubscribe = () => { };
+
+        if (isFirebaseConfigured()) {
+            const stateRef = ref(db, "presentation/state");
+            const unsubscribeHandler = onValue(stateRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    if (data.currentSlideIndex !== undefined) setCurrentSlideIndex(data.currentSlideIndex);
+                    if (data.quizStatus !== undefined) setQuizStatus(data.quizStatus);
+                    if (data.slideData !== undefined) setSlideDataState(data.slideData || {});
+                }
+            });
+            unsubscribe = () => unsubscribeHandler();
+        }
+
         // MOCK MODE: Sync state via LocalStorage for same-device demo
         const handleStorageChange = (e) => {
             if (e.key === "leap_currentSlideIndex") {
@@ -23,6 +44,9 @@ export const GameStateProvider = ({ children, role = "audience" }) => {
             if (e.key === "leap_playerScores") {
                 setPlayerScores(JSON.parse(e.newValue || "{}"));
             }
+            if (e.key === "leap_slideData") {
+                setSlideDataState(JSON.parse(e.newValue || "{}"));
+            }
         };
 
         window.addEventListener("storage", handleStorageChange);
@@ -31,33 +55,60 @@ export const GameStateProvider = ({ children, role = "audience" }) => {
         const savedSlide = localStorage.getItem("leap_currentSlideIndex");
         if (savedSlide) setCurrentSlideIndex(Number(savedSlide));
 
+        const savedSlideData = localStorage.getItem("leap_slideData");
+        if (savedSlideData) setSlideDataState(JSON.parse(savedSlideData));
+
         setIsConnected(true);
 
         return () => {
+            unsubscribe();
             window.removeEventListener("storage", handleStorageChange);
         };
     }, []);
+
+    const isFirebaseConfigured = () => {
+        const key = import.meta.env.VITE_FIREBASE_API_KEY || "";
+        return key.length > 10 && !key.startsWith("your-");
+    };
 
     // Presenter actions
     const setSlide = async (index) => {
         if (role !== "presenter") return;
         localStorage.setItem("leap_currentSlideIndex", index);
-        // Dispatch event manually for the current window (storage event only fires for OTHER windows)
-        // Actually, we don't need to dispatch for current window if we update state directly in the component calling this?
-        // But for consistency let's update local state too if we were relying on the hook.
-        // However, standard React pattern: optimistic update or wait for single source of truth.
-        // For LocalStorage, we must update state manually in the setter because 'storage' event doesn't fire on the tab that set the item.
-        setCurrentSlideIndex(index);
+        localStorage.setItem("leap_slideData", "{}"); // Clear slide data on slide change
 
-        // Simulating Firebase 'set' - no async really needed but keeping signature
-        return Promise.resolve();
+        setCurrentSlideIndex(index);
+        setSlideDataState({});
+
+        if (isFirebaseConfigured()) {
+            await set(ref(db, "presentation/state"), {
+                currentSlideIndex: index,
+                quizStatus,
+                slideData: {}
+            }).catch(console.warn);
+        }
+    };
+
+    const setSlideData = async (index, data) => {
+        if (role !== "presenter") return;
+
+        const newSlideData = { [index]: data };
+        localStorage.setItem("leap_slideData", JSON.stringify(newSlideData));
+        setSlideDataState(newSlideData);
+
+        if (isFirebaseConfigured()) {
+            await set(ref(db, "presentation/state/slideData"), newSlideData).catch(console.warn);
+        }
     };
 
     const setQuizState = async (status) => {
         if (role !== "presenter") return;
         localStorage.setItem("leap_quizStatus", status);
         setQuizStatus(status);
-        return Promise.resolve();
+
+        if (isFirebaseConfigured()) {
+            await set(ref(db, "presentation/state/quizStatus"), status).catch(console.warn);
+        }
     };
 
     return (
@@ -66,8 +117,10 @@ export const GameStateProvider = ({ children, role = "audience" }) => {
                 currentSlideIndex,
                 quizStatus,
                 playerScores,
+                slideData,
                 isConnected,
                 setSlide,
+                setSlideData,
                 setQuizState,
                 role,
             }}

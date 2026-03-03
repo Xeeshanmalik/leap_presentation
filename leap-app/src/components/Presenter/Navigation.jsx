@@ -10,6 +10,19 @@ export default function Navigation({ toggleNotes, showNotes, onExport }) {
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-3 items-center">
             <button
+                type="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSlide(0);
+                }}
+                className="w-11 h-11 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center hover:bg-blue-500/20 transition-all backdrop-blur-md"
+                title="Go to Beginning"
+            >
+                🏠
+            </button>
+
+            <button
                 onClick={() => changeSlide(-1)}
                 className="w-11 h-11 rounded-full bg-teal/10 border border-teal/20 text-teal flex items-center justify-center hover:bg-teal/20 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all backdrop-blur-md"
             >

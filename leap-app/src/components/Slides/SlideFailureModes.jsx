@@ -1,16 +1,14 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 
-const FlipCard = ({ icon, title, desc, color, mitigationTitle, mitigationDesc, isExportMode }) => {
-    const [isFlipped, setIsFlipped] = useState(false);
-
+const FlipCard = ({ icon, title, desc, color, mitigationTitle, mitigationDesc, isExportMode, isFlipped, onToggle }) => {
     // active state
     const active = isExportMode ? false : isFlipped;
 
     return (
         <div
             className="group perspective w-full h-80 cursor-pointer"
-            onClick={() => !isExportMode && setIsFlipped(!isFlipped)}
+            onClick={onToggle}
         >
             <motion.div
                 className="w-full h-full relative transition-all duration-500"
@@ -57,7 +55,21 @@ const FlipCard = ({ icon, title, desc, color, mitigationTitle, mitigationDesc, i
     );
 };
 
+import { useGameState } from "../../hooks/useGameState";
+
 export default function SlideFailureModes({ isExportMode }) {
+    const { slideData, setSlideData, role } = useGameState();
+    const flippedCards = slideData?.[13]?.flippedCards || {};
+
+    const handleToggle = (index) => {
+        if (!isExportMode && role === 'presenter') {
+            setSlideData(13, {
+                ...slideData?.[13],
+                flippedCards: { ...flippedCards, [index]: !flippedCards[index] }
+            });
+        }
+    };
+
     const cards = [
         {
             icon: "⚠️",
@@ -97,7 +109,13 @@ export default function SlideFailureModes({ isExportMode }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
                 {cards.map((card, i) => (
-                    <FlipCard key={i} {...card} isExportMode={isExportMode} />
+                    <FlipCard
+                        key={i}
+                        {...card}
+                        isExportMode={isExportMode}
+                        isFlipped={!!flippedCards[i]}
+                        onToggle={() => handleToggle(i)}
+                    />
                 ))}
             </div>
         </div>

@@ -29,6 +29,9 @@ export default function PresenterView() {
             } else if (e.key === "ArrowLeft") {
                 e.preventDefault();
                 changeSlide(-1);
+            } else if (e.key.toLowerCase() === "h" || e.key === "Home") {
+                e.preventDefault();
+                setSlide(0);
             }
         };
 

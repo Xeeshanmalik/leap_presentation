@@ -1,17 +1,34 @@
 import { motion } from "framer-motion";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useGameState } from "../../hooks/useGameState";
 
 export default function SlideAttentionMechanism({ isExportMode }) {
-    const [activeStep, setActiveStep] = useState(0);
-    const [hoveredCell, setHoveredCell] = useState(null); // { r, c }
+    const { slideData, setSlideData, role } = useGameState();
+
+    // Slide 6 state from global context
+    const currentData = slideData?.[6] || { activeStep: 0, hoveredCell: null };
+    const { activeStep, hoveredCell } = currentData;
 
     // Export Mode: Force final view
     useEffect(() => {
         if (isExportMode) {
-            setActiveStep(3);
-            setHoveredCell(null);
+            if (role === 'presenter') {
+                setSlideData(6, { activeStep: 3, hoveredCell: null });
+            }
         }
-    }, [isExportMode]);
+    }, [isExportMode, role, setSlideData]);
+
+    const handleStepClick = (i) => {
+        if (!isExportMode && role === 'presenter') {
+            setSlideData(6, { ...currentData, activeStep: i });
+        }
+    };
+
+    const handleCellHover = (cell) => {
+        if (!isExportMode && role === 'presenter') {
+            setSlideData(6, { ...currentData, hoveredCell: cell });
+        }
+    };
 
     const steps = [
         { title: "Input Projection", desc: "Each patch token X is linearly projected into three matrices: Query (Q), Key (K), and Value (V)." },
@@ -58,7 +75,7 @@ export default function SlideAttentionMechanism({ isExportMode }) {
                     {/* Grid Container */}
                     <div
                         className="grid grid-cols-6 gap-2"
-                        onMouseLeave={() => !isExportMode && setHoveredCell(null)}
+                        onMouseLeave={() => handleCellHover(null)}
                     >
                         {attentionData.map((row, r) => (
                             row.map((score, c) => {
@@ -89,7 +106,7 @@ export default function SlideAttentionMechanism({ isExportMode }) {
                                             scale: isHovered ? 1.15 : 1,
                                             boxShadow: isHovered ? "0 0 15px rgba(0,212,255,0.5)" : "none"
                                         }}
-                                        onMouseEnter={() => !isExportMode && setHoveredCell({ r, c })}
+                                        onMouseEnter={() => handleCellHover({ r, c })}
                                     >
                                         {score.toFixed(2)}
                                     </motion.div>
@@ -109,7 +126,7 @@ export default function SlideAttentionMechanism({ isExportMode }) {
                     {steps.map((step, i) => (
                         <div
                             key={i}
-                            onClick={() => !isExportMode && setActiveStep(i)}
+                            onClick={() => handleStepClick(i)}
                             className={`p-6 rounded-r-xl border-l-4 transition-all cursor-pointer ${activeStep === i
                                 ? 'bg-teal/10 border-teal'
                                 : 'bg-white/5 border-transparent opacity-50 hover:opacity-80'
