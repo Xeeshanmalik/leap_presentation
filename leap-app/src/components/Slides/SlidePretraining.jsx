@@ -1,24 +1,43 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useGameState } from "../../hooks/useGameState";
 
 export default function SlidePretraining({ isExportMode }) {
-    const [tokens, setTokens] = useState(
-        isExportMode
-            ? Array.from({ length: 12 }, (_, i) => ({ id: i, val: Math.floor(Math.random() * 100), masked: i % 3 === 0 }))
-            : Array.from({ length: 12 }, (_, i) => ({ id: i, val: Math.floor(Math.random() * 100), masked: false }))
+    const { slideData, setSlideData, role } = useGameState();
+
+    // Initial static token values
+    const [initialTokens] = useState(() =>
+        Array.from({ length: 12 }, (_, i) => ({
+            id: i,
+            val: Math.floor(Math.random() * 100)
+        }))
     );
 
+    // Read synced state or default to unmasked (masked in export)
+    const syncedTokens = slideData?.[11]?.tokens;
+
+    const tokens = syncedTokens || initialTokens.map((t, i) => ({
+        ...t,
+        masked: isExportMode ? i % 3 === 0 : false
+    }));
+
     useEffect(() => {
-        if (isExportMode) return;
+        if (isExportMode || role !== 'presenter') return;
 
         const interval = setInterval(() => {
-            setTokens(prev => prev.map(t => ({
+            const nextTokens = tokens.map(t => ({
                 ...t,
                 masked: Math.random() > 0.7 // 30% mask rate
-            })));
+            }));
+
+            setSlideData(11, {
+                ...slideData?.[11],
+                tokens: nextTokens
+            });
         }, 2000);
+
         return () => clearInterval(interval);
-    }, [isExportMode]);
+    }, [isExportMode, role, tokens, slideData, setSlideData]);
 
     return (
         <div className="flex flex-col items-center justify-center h-full max-w-5xl mx-auto px-6 relative z-10">

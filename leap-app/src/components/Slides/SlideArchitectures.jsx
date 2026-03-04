@@ -1,16 +1,14 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 
-const FlipCard = ({ title, meta, icon, backTitle, backDesc, isExportMode }) => {
-    const [isFlipped, setIsFlipped] = useState(false);
-
+const FlipCard = ({ title, meta, icon, backTitle, backDesc, isExportMode, isFlipped, onToggle }) => {
     // In export mode, never flip (or maybe we could show side-by-side, but keep simple for now)
     const active = isExportMode ? false : isFlipped;
 
     return (
         <div
             className="group perspective w-full h-64 cursor-pointer"
-            onClick={() => !isExportMode && setIsFlipped(!isFlipped)}
+            onClick={onToggle}
         >
             <motion.div
                 className="w-full h-full relative transition-all duration-500"
@@ -47,7 +45,21 @@ const FlipCard = ({ title, meta, icon, backTitle, backDesc, isExportMode }) => {
     );
 };
 
+import { useGameState } from "../../hooks/useGameState";
+
 export default function SlideArchitectures({ isExportMode }) {
+    const { slideData, setSlideData, role } = useGameState();
+    const flippedCards = slideData?.[10]?.flippedCards || {};
+
+    const handleToggle = (index) => {
+        if (!isExportMode && role === 'presenter') {
+            setSlideData(10, {
+                ...slideData?.[10],
+                flippedCards: { ...flippedCards, [index]: !flippedCards[index] }
+            });
+        }
+    };
+
     return (
         <div className="flex flex-col items-center justify-center h-full max-w-6xl mx-auto px-6 relative z-10">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-teal font-mono text-sm tracking-[3px] uppercase mb-4 opacity-70">
@@ -66,6 +78,8 @@ export default function SlideArchitectures({ isExportMode }) {
                     backTitle="Why it wins:"
                     backDesc="Channel Independence + Patching. Beats DLinear significantly in benchmarks."
                     isExportMode={isExportMode}
+                    isFlipped={!!flippedCards[0]}
+                    onToggle={() => handleToggle(0)}
                 />
                 <FlipCard
                     title="TimesFM"
@@ -74,6 +88,8 @@ export default function SlideArchitectures({ isExportMode }) {
                     backTitle="Why it wins:"
                     backDesc="Decoder-only architecture trained on 100B real & synthetic points."
                     isExportMode={isExportMode}
+                    isFlipped={!!flippedCards[1]}
+                    onToggle={() => handleToggle(1)}
                 />
                 <FlipCard
                     title="Chronos"
@@ -82,6 +98,8 @@ export default function SlideArchitectures({ isExportMode }) {
                     backTitle="Why it wins:"
                     backDesc="Tokenizes values into buckets. Uses T5 LLM architecture to treat time as language."
                     isExportMode={isExportMode}
+                    isFlipped={!!flippedCards[2]}
+                    onToggle={() => handleToggle(2)}
                 />
                 <FlipCard
                     title="Moirai"
@@ -90,6 +108,8 @@ export default function SlideArchitectures({ isExportMode }) {
                     backTitle="Why it wins:"
                     backDesc="Universal Masked Encoder. Handles multi-variate data with any frequency."
                     isExportMode={isExportMode}
+                    isFlipped={!!flippedCards[3]}
+                    onToggle={() => handleToggle(3)}
                 />
             </div>
         </div>
