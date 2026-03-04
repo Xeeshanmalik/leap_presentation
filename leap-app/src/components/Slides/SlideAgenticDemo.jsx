@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useGameState } from "../../hooks/useGameState";
 import { motion, AnimatePresence } from "framer-motion";
 
 /* ─── Preset queries ─── */
@@ -114,6 +115,7 @@ function TraceEntry({ type, msg, ts }) {
 }
 
 export default function SlideAgenticDemo() {
+    const { slideData, setSlideData, role } = useGameState();
     const [entries, setEntries] = useState([]);
     const [result, setResult] = useState(null);
     const [running, setRunning] = useState(false);
@@ -121,6 +123,7 @@ export default function SlideAgenticDemo() {
     const [systemStatus, setSystemStatus] = useState({ ltsm: "ONLINE", sandbox: "READY", ctx: "0 / 4096", agents: "3 IDLE" });
     const timers = useRef([]);
     const logRef = useRef(null);
+    const lastTrigger = useRef(null);
     const [inputVal, setInputVal] = useState(PRESETS[0].replace(/^[^\s]+\s/, ""));
 
     const runTrace = useCallback((idx) => {
@@ -164,6 +167,14 @@ export default function SlideAgenticDemo() {
         timers.current.push(done);
     }, [running]);
 
+    useEffect(() => {
+        if (slideData?.trigger && slideData.trigger !== lastTrigger.current) {
+            lastTrigger.current = slideData.trigger;
+            setInputVal(PRESETS[slideData.activePreset].replace(/^[^\s]+\s/, ""));
+            runTrace(slideData.activePreset);
+        }
+    }, [slideData?.trigger, slideData?.activePreset, runTrace]);
+
     return (
         <div className="flex flex-col h-full w-full relative overflow-hidden px-10 py-8" style={{ fontSize: "0.65rem" }}>
             {/* Header row */}
@@ -190,6 +201,11 @@ export default function SlideAgenticDemo() {
                         <button
                             key={i}
                             onClick={() => {
+                                const trigger = Date.now();
+                                if (role === "presenter") {
+                                    setSlideData({ activePreset: i, trigger });
+                                    lastTrigger.current = trigger;
+                                }
                                 setInputVal(p.replace(/^[^\s]+\s/, ""));
                                 runTrace(i);
                             }}
@@ -240,7 +256,13 @@ export default function SlideAgenticDemo() {
                         <button
                             onClick={() => {
                                 const idx = PRESETS.findIndex(p => inputVal.toLowerCase().includes(p.slice(2, 20).toLowerCase()));
-                                runTrace(idx >= 0 ? idx : 0);
+                                const finalIdx = idx >= 0 ? idx : 0;
+                                const trigger = Date.now();
+                                if (role === "presenter") {
+                                    setSlideData({ activePreset: finalIdx, trigger });
+                                    lastTrigger.current = trigger;
+                                }
+                                runTrace(finalIdx);
                             }}
                             disabled={running}
                             className="font-mono text-[0.58rem] tracking-widest transition-all"
