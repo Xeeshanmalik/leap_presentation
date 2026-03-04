@@ -115,7 +115,7 @@ function TraceEntry({ type, msg, ts }) {
 }
 
 export default function SlideAgenticDemo() {
-    const { slideData, setSlideData, role } = useGameState();
+    const { currentSlideIndex, slideData, setSlideData, role } = useGameState();
     const [entries, setEntries] = useState([]);
     const [result, setResult] = useState(null);
     const [running, setRunning] = useState(false);
@@ -168,12 +168,13 @@ export default function SlideAgenticDemo() {
     }, [running]);
 
     useEffect(() => {
-        if (slideData?.trigger && slideData.trigger !== lastTrigger.current) {
-            lastTrigger.current = slideData.trigger;
-            setInputVal(PRESETS[slideData.activePreset].replace(/^[^\s]+\s/, ""));
-            runTrace(slideData.activePreset);
+        const data = slideData?.[currentSlideIndex];
+        if (data?.trigger && data.trigger !== lastTrigger.current) {
+            lastTrigger.current = data.trigger;
+            setInputVal(PRESETS[data.activePreset].replace(/^[^\s]+\s/, ""));
+            runTrace(data.activePreset);
         }
-    }, [slideData?.trigger, slideData?.activePreset, runTrace]);
+    }, [slideData, currentSlideIndex, runTrace]);
 
     return (
         <div className="flex flex-col h-full w-full relative overflow-hidden px-10 py-8" style={{ fontSize: "0.65rem" }}>
@@ -203,7 +204,7 @@ export default function SlideAgenticDemo() {
                             onClick={() => {
                                 const trigger = Date.now();
                                 if (role === "presenter") {
-                                    setSlideData({ activePreset: i, trigger });
+                                    setSlideData(currentSlideIndex, { activePreset: i, trigger });
                                     lastTrigger.current = trigger;
                                 }
                                 setInputVal(p.replace(/^[^\s]+\s/, ""));
@@ -259,7 +260,7 @@ export default function SlideAgenticDemo() {
                                 const finalIdx = idx >= 0 ? idx : 0;
                                 const trigger = Date.now();
                                 if (role === "presenter") {
-                                    setSlideData({ activePreset: finalIdx, trigger });
+                                    setSlideData(currentSlideIndex, { activePreset: finalIdx, trigger });
                                     lastTrigger.current = trigger;
                                 }
                                 runTrace(finalIdx);
