@@ -62,6 +62,7 @@ export default function SlideExecutiveSolution({ isExportMode }) {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         let ltsmT = 0;
+        let ltsmProgress = 0; // specifically for the imputation animation loop
         let animationFrameId;
 
         const genSignal = (type, N, t) => {
@@ -113,7 +114,13 @@ export default function SlideExecutiveSolution({ isExportMode }) {
 
             ltsmT += 0.018;
 
+            // For imputation, we want a looping drawing progress bar instead of scrolling sine waves
             const task = TASKS[activeTaskIndex];
+            if (task.signal === 'imputation') {
+                ltsmProgress += 0.005; // ~3.5 seconds per loop at 60fps
+                if (ltsmProgress > 1.2) ltsmProgress = 0; // pause at the end before restarting
+            }
+
             const N = 120;
             const signal = genSignal(task.signal, N, ltsmT);
             const pad = { l: 40, r: 240, t: 60, b: 36 };
@@ -128,8 +135,11 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             ctx.fillRect(pad.l, pad.t, histW, ph);
 
             // Generate transparent version of the task color for the right side
-            ctx.fillStyle = task.color + '15'; // ~ 8% opacity in hex
-            ctx.fillRect(pad.l + histW, pad.t, foreW, ph);
+            // Hide the right panel elements during imputation to focus purely on the reconstruction
+            if (task.signal !== 'imputation') {
+                ctx.fillStyle = task.color + '15'; // ~ 8% opacity in hex
+                ctx.fillRect(pad.l + histW, pad.t, foreW, ph);
+            }
 
             // Draw Missing Windows (Red Backgrounds) for Imputation
             if (task.signal === 'imputation') {
@@ -150,14 +160,20 @@ export default function SlideExecutiveSolution({ isExportMode }) {
 
             // Zone labels
             ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '15px "Outfit", sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText('HISTORICAL DATA', pad.l + histW / 2, pad.t - 16);
-            ctx.fillStyle = task.color; ctx.font = 'bold 15px "Outfit", sans-serif';
-            ctx.fillText(task.signal === 'imputation' ? 'LTSM IMPUTATION →' : 'LTSM FORECAST →', pad.l + histW + foreW / 2, pad.t - 16);
+            if (task.signal === 'imputation') {
+                ctx.fillText('SENSOR TELEMETRY', pad.l + pw / 2, pad.t - 16);
+            } else {
+                ctx.fillText('HISTORICAL DATA', pad.l + histW / 2, pad.t - 16);
+                ctx.fillStyle = task.color; ctx.font = 'bold 15px "Outfit", sans-serif';
+                ctx.fillText('LTSM FORECAST →', pad.l + histW + foreW / 2, pad.t - 16);
+            }
 
             // Divider
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
-            ctx.beginPath(); ctx.moveTo(pad.l + histW, pad.t); ctx.lineTo(pad.l + histW, pad.t + ph); ctx.stroke();
-            ctx.setLineDash([]);
+            if (task.signal !== 'imputation') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+                ctx.beginPath(); ctx.moveTo(pad.l + histW, pad.t); ctx.lineTo(pad.l + histW, pad.t + ph); ctx.stroke();
+                ctx.setLineDash([]);
+            }
 
             // Grid
             ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
@@ -166,8 +182,15 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                 ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
             });
 
+            // Calculate active drawing frames for both static and animated views
             const histN = Math.floor(N * histFrac);
             const foreN = N - histN;
+
+            // For imputation, we draw across the entire width and animate sequentially
+            const activeRange = task.signal === 'imputation' ? N : histN;
+            const drawProgressIdx = task.signal === 'imputation'
+                ? Math.floor(Math.min(1, ltsmProgress) * activeRange)
+                : histN;
 
             // Historical signal / Actual Sensor Line
             ctx.strokeStyle = task.signal === 'imputation' ? '#00d4ff' : 'rgba(139,146,168,0.7)'; // Bright teal for imputation, otherwise grey
@@ -178,7 +201,7 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             }
             ctx.beginPath();
             let isDrawing = false;
-            for (let i = 0; i <= histN; i++) {
+            for (let i = 0; i <= drawProgressIdx; i++) {
                 if (signal[i] === null) {
                     isDrawing = false;
                     continue;
@@ -197,13 +220,14 @@ export default function SlideExecutiveSolution({ isExportMode }) {
 
             // Imputation reconstruction (dashed gold line over missing gaps)
             if (task.signal === 'imputation') {
-                const cleanSignal = genSignal('test', N, ltsmT);
+                // Pass t=0 for imputation so the base wave doesn't scroll, it stays perfectly static
+                const cleanSignal = genSignal('test', N, 0);
 
                 // Draw Confidence Interval Band exactly over the missing gaps
                 ctx.fillStyle = 'rgba(16, 185, 129, 0.15)'; // Green band
                 ctx.beginPath();
                 let confStarted = false;
-                for (let i = 0; i <= histN; i++) {
+                for (let i = 0; i <= drawProgressIdx; i++) {
                     if (signal[i] === null) {
                         const x = pad.l + (i / N) * pw;
                         const yUp = pad.t + (1 - (cleanSignal[i] + 0.04)) * ph;
@@ -222,6 +246,17 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                         confStarted = false;
                     }
                 }
+                // Close any open confidence band at the end of the drawing sequence
+                if (confStarted) {
+                    for (let j = drawProgressIdx; j >= 0; j--) {
+                        if (signal[j] !== null) break;
+                        const bx = pad.l + (j / N) * pw;
+                        const byDown = pad.t + (1 - (cleanSignal[j] - 0.04)) * ph;
+                        ctx.lineTo(bx, byDown);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                }
 
                 // Draw Imputed Dashed Line
                 ctx.save();
@@ -233,7 +268,7 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                 ctx.beginPath();
 
                 let impDrawing = false;
-                for (let i = 0; i <= histN; i++) {
+                for (let i = 0; i <= drawProgressIdx; i++) {
                     if (signal[i] === null) {
                         const x = pad.l + (i / N) * pw;
                         const y = pad.t + (1 - cleanSignal[i]) * ph;
@@ -250,28 +285,52 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                     }
                 }
                 ctx.stroke();
+
+                // Draw leading animated dot if we are currently drawing
+                if (ltsmProgress < 1.0) {
+                    const ci = drawProgressIdx;
+                    const cv = signal[ci] !== null ? signal[ci] : cleanSignal[ci];
+                    const cx = pad.l + (ci / N) * pw;
+                    const cy = pad.t + (1 - cv) * ph;
+                    v
+                    ctx.setLineDash([]);
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = signal[ci] !== null ? '#00d4ff' : '#f59e0b';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+                    ctx.strokeStyle = signal[ci] !== null ? 'rgba(0,212,255,0.4)' : 'rgba(245,158,11,0.4)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+
                 ctx.restore();
             }
 
-            // Confidence interval (fill shape)
-            ctx.fillStyle = task.color + '25'; // ~15% opacity
-            ctx.beginPath();
-            const foreSignal = signal.slice(histN);
-            ctx.moveTo(pad.l + histW, pad.t + (1 - foreSignal[0]) * ph - ph * 0.06);
-            foreSignal.forEach((v, i) => { const x = pad.l + histW + (i / foreN) * foreW; ctx.lineTo(x, pad.t + (1 - v) * ph - ph * 0.06 - i * 0.2); });
-            foreSignal.slice().reverse().forEach((v, i) => { const x = pad.l + histW + ((foreN - 1 - i) / foreN) * foreW; ctx.lineTo(x, pad.t + (1 - v) * ph + ph * 0.06 + i * 0.2); });
-            ctx.closePath(); ctx.fill();
-
             // Forecast line
-            ctx.strokeStyle = task.color; ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            const cleanForeSignal = task.signal === 'imputation' ? genSignal('test', N, ltsmT).slice(histN) : foreSignal;
-            cleanForeSignal.forEach((v, i) => {
-                const x = pad.l + histW + (i / foreN) * foreW;
-                const y = pad.t + (1 - v) * ph;
-                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-            });
-            ctx.stroke();
+            if (task.signal !== 'imputation') {
+                ctx.strokeStyle = task.color; ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                const foreSignal = signal.slice(histN);
+
+                // Confidence interval (fill shape)
+                ctx.fillStyle = task.color + '25'; // ~15% opacity
+                ctx.beginPath();
+                ctx.moveTo(pad.l + histW, pad.t + (1 - foreSignal[0]) * ph - ph * 0.06);
+                foreSignal.forEach((v, i) => { const x = pad.l + histW + (i / foreN) * foreW; ctx.lineTo(x, pad.t + (1 - v) * ph - ph * 0.06 - i * 0.2); });
+                foreSignal.slice().reverse().forEach((v, i) => { const x = pad.l + histW + ((foreN - 1 - i) / foreN) * foreW; ctx.lineTo(x, pad.t + (1 - v) * ph + ph * 0.06 + i * 0.2); });
+                ctx.closePath(); ctx.fill();
+
+                // Draw Forecast Line
+                ctx.beginPath();
+                foreSignal.forEach((v, i) => {
+                    const x = pad.l + histW + (i / foreN) * foreW;
+                    const y = pad.t + (1 - v) * ph;
+                    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
 
             // Anomaly markers
             if (task.signal === 'anomaly') {
@@ -289,26 +348,28 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             }
 
             // Attention arcs
-            const queryIdx = histN - 1;
-            const qx = pad.l + (queryIdx / N) * pw;
-            const qy = pad.t + (1 - signal[queryIdx]) * ph;
-            const topPts = [Math.floor(histN * 0.15), Math.floor(histN * 0.4), Math.floor(histN * 0.65)];
-            topPts.forEach((pi, ii) => {
-                const ax2 = pad.l + (pi / N) * pw;
-                const ay2 = pad.t + (1 - signal[pi]) * ph;
-                const alpha = 0.2 + ii * 0.15;
-                // Add exact hex to alpha conversion approximation logic here or simple slice
-                ctx.strokeStyle = task.color; // simplified for React port
-                ctx.globalAlpha = alpha;
-                ctx.lineWidth = 1.5; ctx.setLineDash([2, 4]);
-                ctx.beginPath(); ctx.moveTo(qx, qy); ctx.quadraticCurveTo((qx + ax2) / 2, pad.t - 10, ax2, ay2); ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.globalAlpha = 1.0;
-            });
+            if (task.signal !== 'imputation') {
+                const queryIdx = histN - 1;
+                const qx = pad.l + (queryIdx / N) * pw;
+                const qy = pad.t + (1 - signal[queryIdx]) * ph;
+                const topPts = [Math.floor(histN * 0.15), Math.floor(histN * 0.4), Math.floor(histN * 0.65)];
+                topPts.forEach((pi, ii) => {
+                    const ax2 = pad.l + (pi / N) * pw;
+                    const ay2 = pad.t + (1 - signal[pi]) * ph;
+                    const alpha = 0.2 + ii * 0.15;
+                    // Add exact hex to alpha conversion approximation logic here or simple slice
+                    ctx.strokeStyle = task.color; // simplified for React port
+                    ctx.globalAlpha = alpha;
+                    ctx.lineWidth = 1.5; ctx.setLineDash([2, 4]);
+                    ctx.beginPath(); ctx.moveTo(qx, qy); ctx.quadraticCurveTo((qx + ax2) / 2, pad.t - 10, ax2, ay2); ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.globalAlpha = 1.0;
+                });
 
-            // Query point
-            ctx.fillStyle = task.color; ctx.beginPath(); ctx.arc(qx, qy, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(qx, qy, 5, 0, Math.PI * 2); ctx.stroke();
+                // Query point
+                ctx.fillStyle = task.color; ctx.beginPath(); ctx.arc(qx, qy, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(qx, qy, 5, 0, Math.PI * 2); ctx.stroke();
+            }
 
             // Legend
             const legItems = task.signal === 'imputation'
