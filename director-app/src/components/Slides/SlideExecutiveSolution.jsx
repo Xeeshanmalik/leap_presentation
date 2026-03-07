@@ -7,7 +7,7 @@ const TASKS = [
         icon: <WifiOff size={18} />, label: 'Missing Sensor Imputation',
         desc: 'Reconstructing missing telemetry data from faulty oil rig sensors in real-time with high fidelity.',
         meta: { 'Data gap': 'Up to 72h', 'Zero-shot': 'Yes', 'Accuracy': '98.5%', 'Retrain needed': 'None' },
-        color: '#c084fc', signal: 'imputation'
+        color: '#f59e0b', signal: 'imputation' // gold imputation line
     },
     {
         icon: <Wrench size={18} />, label: 'Pump Failure Prediction',
@@ -131,6 +131,23 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             ctx.fillStyle = task.color + '15'; // ~ 8% opacity in hex
             ctx.fillRect(pad.l + histW, pad.t, foreW, ph);
 
+            // Draw Missing Windows (Red Backgrounds) for Imputation
+            if (task.signal === 'imputation') {
+                const gap1Start = pad.l + (0.25) * pw;
+                const gap1End = pad.l + (0.35) * pw;
+                const gap2Start = pad.l + (0.55) * pw;
+                const gap2End = pad.l + (0.6) * pw;
+
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.08)'; // faint red bg
+                ctx.fillRect(gap1Start, pad.t, gap1End - gap1Start, ph);
+                ctx.fillRect(gap2Start, pad.t, gap2End - gap2Start, ph);
+
+                // Top red marker line
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+                ctx.fillRect(gap1Start, pad.t, gap1End - gap1Start, 2);
+                ctx.fillRect(gap2Start, pad.t, gap2End - gap2Start, 2);
+            }
+
             // Zone labels
             ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '15px "Outfit", sans-serif'; ctx.textAlign = 'center';
             ctx.fillText('HISTORICAL DATA', pad.l + histW / 2, pad.t - 16);
@@ -152,8 +169,13 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             const histN = Math.floor(N * histFrac);
             const foreN = N - histN;
 
-            // Historical signal
-            ctx.strokeStyle = 'rgba(139,146,168,0.7)'; ctx.lineWidth = 2;
+            // Historical signal / Actual Sensor Line
+            ctx.strokeStyle = task.signal === 'imputation' ? '#00d4ff' : 'rgba(139,146,168,0.7)'; // Bright teal for imputation, otherwise grey
+            ctx.lineWidth = 2;
+            if (task.signal === 'imputation') {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = '#00d4ff';
+            }
             ctx.beginPath();
             let isDrawing = false;
             for (let i = 0; i <= histN; i++) {
@@ -171,16 +193,45 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                 }
             }
             ctx.stroke();
+            ctx.shadowBlur = 0;
 
-            // Imputation reconstruction (dashed colored line over missing gaps)
+            // Imputation reconstruction (dashed gold line over missing gaps)
             if (task.signal === 'imputation') {
-                ctx.save();
-                ctx.strokeStyle = task.color;
-                ctx.lineWidth = 2;
-                ctx.setLineDash([4, 4]);
-                ctx.beginPath();
-                // We need to re-generate the clean signal without nulls to draw the imputation
                 const cleanSignal = genSignal('test', N, ltsmT);
+
+                // Draw Confidence Interval Band exactly over the missing gaps
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.15)'; // Green band
+                ctx.beginPath();
+                let confStarted = false;
+                for (let i = 0; i <= histN; i++) {
+                    if (signal[i] === null) {
+                        const x = pad.l + (i / N) * pw;
+                        const yUp = pad.t + (1 - (cleanSignal[i] + 0.04)) * ph;
+                        if (!confStarted) { ctx.moveTo(x, yUp); confStarted = true; }
+                        else ctx.lineTo(x, yUp);
+                    } else if (confStarted) {
+                        for (let j = i - 1; j >= 0; j--) {
+                            if (signal[j] !== null) break;
+                            const bx = pad.l + (j / N) * pw;
+                            const byDown = pad.t + (1 - (cleanSignal[j] - 0.04)) * ph;
+                            ctx.lineTo(bx, byDown);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.beginPath();
+                        confStarted = false;
+                    }
+                }
+
+                // Draw Imputed Dashed Line
+                ctx.save();
+                ctx.strokeStyle = '#f59e0b'; // Gold
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = '#f59e0b';
+                ctx.setLineDash([5, 4]);
+                ctx.beginPath();
+
                 let impDrawing = false;
                 for (let i = 0; i <= histN; i++) {
                     if (signal[i] === null) {
@@ -193,6 +244,8 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                             ctx.lineTo(x, y);
                         }
                     } else {
+                        if (impDrawing) ctx.stroke();
+                        ctx.beginPath();
                         impDrawing = false;
                     }
                 }
@@ -258,17 +311,25 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(qx, qy, 5, 0, Math.PI * 2); ctx.stroke();
 
             // Legend
-            const legItems = [
-                { c: 'rgba(139,146,168,0.7)', label: 'Historical' },
-                { c: task.color, label: 'LTSM Forecast' },
-                { c: task.color + '55', label: '95% Confidence' },
-            ];
+            const legItems = task.signal === 'imputation'
+                ? [
+                    { c: '#00d4ff', label: 'Actual Sensor' },
+                    { c: 'rgba(239,68,68,0.4)', label: 'Missing Window' },
+                    { c: '#f59e0b', label: 'LTSM Imputed' },
+                    { c: 'rgba(16,185,129,0.4)', label: 'Confidence Band' },
+                ]
+                : [
+                    { c: 'rgba(139,146,168,0.7)', label: 'Historical' },
+                    { c: task.color, label: 'LTSM Forecast' },
+                    { c: task.color + '55', label: '95% Confidence' },
+                ];
+
             legItems.forEach((item, i) => {
                 const lx = W - pad.r + 24;
-                const ly = pad.t + 32 + i * 36;
+                const ly = pad.t + 32 + i * 32;
                 ctx.fillStyle = item.c; ctx.fillRect(lx, ly - 8, 18, 16);
-                ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '16px "Outfit", sans-serif'; ctx.textAlign = 'left';
-                ctx.fillText(item.label, lx + 28, ly + 6);
+                ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '14px "Outfit", sans-serif'; ctx.textAlign = 'left';
+                ctx.fillText(item.label, lx + 28, ly + 4);
             });
 
             ctx.restore();
