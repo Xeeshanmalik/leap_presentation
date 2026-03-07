@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+@import 'tailwindcss';
+
+@theme {
+  --color-bg: #04070f;
+  --color-surface: #080f1e;
+  --color-card: #0c1628;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-text: #dce8ff;
+  --color-muted: #5b7499;
+  --color-dim: #2a3a55;
+
+  --color-t: #38bdf8;
+  --color-x: #fb923c;
+  --color-l: #4ade80;
+  --color-d: #c084fc;
+  --color-ts: #f472b6;
+  --color-lang: #38bdf8;
+  --color-vis: #fbbf24;
+
+  --font-outfit: 'Outfit', sans-serif;
+  --font-playfair: 'Playfair Display', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-outfit);
+    overflow-x: hidden;
+  }
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-dim);
+  border-radius: 3px;
+}
+
+/* ── CUSTOM CLASSES (Reusable from HTML) ── */
+@layer components {
+  .hero-tag {
+    @apply inline-block font-mono text-[0.65rem] tracking-[0.25em] uppercase text-t border border-t/25 rounded-md py-[0.35rem] px-4 mb-8;
+  }
+
+  .card-label {
+    @apply font-mono text-[0.6rem] tracking-[0.2em] uppercase mb-2;
+  }
+
+  .card-title {
+    @apply text-base font-semibold mb-1;
+  }
+
+  .card-body {
+    @apply text-[0.82rem] text-muted leading-relaxed;
+  }
+
+  .chapter-label {
+    @apply font-mono text-[0.65rem] tracking-[0.25em] uppercase mb-3 inline-block;
+  }
+
+  .chapter-title {
+    @apply font-playfair font-black leading-[1.1] mb-2;
+    font-size: clamp(2rem, 5vw, 3.8rem);
+  }
+}

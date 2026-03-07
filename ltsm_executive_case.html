@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Case for Large Time Series Models</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ══ RESET & TOKENS ══ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#08090d;
+  --surface:#0f1117;
+  --card:#13161f;
+  --border:#1e2230;
+  --border2:#252a38;
+
+  --text:#e8eaf2;
+  --text2:#8b92a8;
+  --text3:#4a5068;
+
+  --red:#e03e3e;
+  --red-d:#7a1a1a;
+  --red-glow:rgba(224,62,62,0.18);
+
+  --green:#00c896;
+  --green-d:#003d2e;
+  --green-glow:rgba(0,200,150,0.15);
+
+  --amber:#f59e0b;
+  --amber-glow:rgba(245,158,11,0.15);
+
+  --blue:#3b82f6;
+  --blue-glow:rgba(59,130,246,0.15);
+
+  --gold:#d4a520;
+  --gold-glow:rgba(212,165,32,0.1);
+}
+
+html{font-size:15px;scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Lora',Georgia,serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ══ TOP NAV ══ */
+.topbar{
+  position:sticky;top:0;z-index:200;
+  background:rgba(8,9,13,0.92);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:0 2.5rem;
+  height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.topbar-brand{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:0.78rem;
+  letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);
+}
+.topbar-title{
+  font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:600;
+  letter-spacing:0.04em;color:var(--text2);
+}
+.topbar-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--text3);padding:0.25rem 0.7rem;
+  border:1px solid var(--border2);border-radius:2px;
+}
+
+/* ══ HERO ══ */
+.hero{
+  position:relative;overflow:hidden;
+  padding:3.5rem 3rem 2.5rem;
+  border-bottom:1px solid var(--border);
+  background:
+    radial-gradient(ellipse 70% 100% at 0% 50%, rgba(224,62,62,0.06) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 80% at 100% 50%, rgba(0,200,150,0.05) 0%,transparent 60%);
+}
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px);
+  background-size:44px 44px;
+  pointer-events:none;
+}
+.hero-inner{
+  position:relative;z-index:1;
+  max-width:1280px;margin:0 auto;
+}
+.hero-kicker{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;
+  letter-spacing:0.28em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:1rem;
+  display:flex;align-items:center;gap:0.6rem;
+}
+.hero-kicker::before{content:'';width:24px;height:1px;background:var(--gold);}
+.hero-h1{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:clamp(1.8rem,4vw,3.2rem);
+  line-height:1.06;letter-spacing:-0.01em;
+  margin-bottom:1rem;
+}
+.hero-h1 em{font-style:normal;color:var(--green);}
+.hero-sub{
+  font-size:0.92rem;color:var(--text2);max-width:700px;
+  line-height:1.75;margin-bottom:1.8rem;font-style:italic;
+}
+.hero-tabs{
+  display:flex;gap:0.5rem;flex-wrap:wrap;
+}
+.htab{
+  padding:0.45rem 1.1rem;border-radius:3px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
+  letter-spacing:0.12em;text-transform:uppercase;
+  cursor:pointer;border:1px solid;
+  transition:all 0.25s;font-weight:500;
+}
+.htab.prob{border-color:var(--red-d);color:var(--red);background:var(--red-glow);}
+.htab.prob.active,.htab.prob:hover{background:rgba(224,62,62,0.3);border-color:var(--red);}
+.htab.sol{border-color:var(--green-d);color:var(--green);background:var(--green-glow);}
+.htab.sol.active,.htab.sol:hover{background:rgba(0,200,150,0.25);border-color:var(--green);}
+.htab.comp{border-color:var(--border2);color:var(--text2);background:transparent;}
+.htab.comp.active,.htab.comp:hover{background:var(--border);border-color:var(--text3);}
+
+/* ══ MAIN LAYOUT ══ */
+.main{max-width:1280px;margin:0 auto;padding:2rem 3rem 4rem;}
+
+/* ══ SECTION PANELS ══ */
+.section-panel{display:none;}
+.section-panel.visible{display:block;}
+
+/* ══ PROBLEM SECTION ══ */
+.problem-headline{
+  display:flex;align-items:center;gap:1rem;
+  margin-bottom:1.8rem;padding:1rem 1.5rem;
+  background:var(--red-glow);border:1px solid var(--red-d);
+  border-radius:4px;
+}
+.problem-headline-icon{font-size:1.6rem;}
+.problem-headline-text h2{
+  font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;
+  color:var(--red);letter-spacing:0.01em;margin-bottom:0.15rem;
+}
+.problem-headline-text p{font-size:0.82rem;color:var(--text2);line-height:1.6;}
+
+/* ── SILOS DEMO ── */
+.silos-wrap{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;
+  margin-bottom:2rem;
+}
+.silo{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:5px;overflow:hidden;cursor:pointer;
+  transition:all 0.3s;position:relative;
+}
+.silo:hover{border-color:var(--red-d);transform:translateY(-3px);}
+.silo.active{border-color:var(--red);box-shadow:0 0 20px var(--red-glow);}
+.silo-top{
+  padding:0.9rem 0.9rem 0.7rem;
+  border-bottom:1px solid var(--border);
+  text-align:center;
+}
+.silo-icon{font-size:1.4rem;margin-bottom:0.4rem;}
+.silo-name{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);
+}
+.silo-task{font-size:0.75rem;font-weight:600;margin-top:0.2rem;color:var(--text);}
+.silo-body{padding:0.8rem 0.9rem;}
+.silo-stat{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:0.35rem;font-size:0.7rem;
+}
+.silo-stat-label{color:var(--text3);}
+.silo-stat-val{
+  font-family:'IBM Plex Mono',monospace;font-size:0.68rem;
+  color:var(--red);font-weight:500;
+}
+.silo-problem{
+  margin-top:0.6rem;padding:0.4rem 0.6rem;
+  background:var(--red-glow);border-radius:3px;
+  font-size:0.68rem;color:var(--red);line-height:1.4;
+  display:none;
+}
+.silo.active .silo-problem{display:block;}
+.silo-canvas-wrap{height:50px;padding:0 0.4rem 0.4rem;position:relative;}
+
+/* ── PAIN POINTS GRID ── */
+.pain-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;
+  margin-bottom:2rem;
+}
+.pain-card{
+  padding:1.2rem 1.3rem;background:var(--card);
+  border:1px solid var(--border);border-radius:5px;
+  border-top:3px solid var(--red-d);
+  transition:all 0.25s;cursor:default;
+}
+.pain-card:hover{border-top-color:var(--red);background:#161820;}
+.pain-num{
+  font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;
+  color:var(--red-d);line-height:1;margin-bottom:0.4rem;
+  transition:color 0.3s;
+}
+.pain-card:hover .pain-num{color:var(--red);}
+.pain-title{font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:700;margin-bottom:0.4rem;}
+.pain-desc{font-size:0.78rem;color:var(--text2);line-height:1.6;}
+
+/* ── COST METER ── */
+.cost-section{
+  padding:1.4rem 1.5rem;background:var(--card);
+  border:1px solid var(--border);border-radius:5px;
+  margin-bottom:2rem;
+}
+.cost-title{
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.2em;text-transform:uppercase;color:var(--red);
+  margin-bottom:1rem;
+}
+.cost-bars{display:flex;flex-direction:column;gap:0.6rem;}
+.cost-bar-row{display:flex;align-items:center;gap:0.8rem;}
+.cost-bar-label{width:160px;font-size:0.76rem;color:var(--text2);flex-shrink:0;}
+.cost-bar-track{flex:1;height:18px;background:var(--border);border-radius:2px;overflow:hidden;position:relative;}
+.cost-bar-fill{
+  height:100%;border-radius:2px;
+  display:flex;align-items:center;padding-left:0.4rem;
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:500;
+  transition:width 1s cubic-bezier(0.22,1,0.36,1);
+}
+.cost-bar-val{
+  margin-left:0.5rem;font-family:'IBM Plex Mono',monospace;
+  font-size:0.7rem;font-weight:500;color:var(--red);width:60px;
+  flex-shrink:0;
+}
+
+/* ══ SOLUTION SECTION ══ */
+.solution-headline{
+  display:flex;align-items:center;gap:1rem;
+  margin-bottom:1.8rem;padding:1rem 1.5rem;
+  background:var(--green-glow);border:1px solid var(--green-d);
+  border-radius:4px;
+}
+.solution-headline h2{
+  font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;
+  color:var(--green);margin-bottom:0.15rem;
+}
+.solution-headline p{font-size:0.82rem;color:var(--text2);line-height:1.6;}
+
+/* ── LTSM CANVAS DEMO ── */
+.ltsm-demo{
+  display:grid;grid-template-columns:1fr 340px;gap:1.5rem;
+  margin-bottom:2rem;
+}
+.ltsm-main{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:5px;padding:1.3rem;
+}
+.ltsm-sidebar{
+  display:flex;flex-direction:column;gap:1rem;
+}
+.ltsm-selector{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:5px;padding:1rem;
+}
+.ltsm-selector-title{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.18em;text-transform:uppercase;color:var(--green);
+  margin-bottom:0.8rem;
+}
+.task-btn{
+  width:100%;text-align:left;padding:0.55rem 0.8rem;
+  border-radius:3px;border:1px solid var(--border);
+  background:transparent;color:var(--text2);cursor:pointer;
+  font-family:'Lora',serif;font-size:0.78rem;
+  transition:all 0.2s;margin-bottom:0.4rem;
+  display:flex;align-items:center;gap:0.6rem;
+}
+.task-btn:hover{border-color:var(--green-d);color:var(--text);}
+.task-btn.active{
+  border-color:var(--green);color:var(--green);
+  background:var(--green-glow);
+}
+.task-icon{font-size:0.95rem;flex-shrink:0;}
+
+.ltsm-meta{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:5px;padding:1rem;
+}
+.ltsm-meta-title{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);
+  margin-bottom:0.7rem;
+}
+.meta-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:0.45rem;font-size:0.75rem;
+  border-bottom:1px solid var(--border);padding-bottom:0.45rem;
+}
+.meta-row:last-child{border-bottom:none;padding-bottom:0;margin-bottom:0;}
+.meta-key{color:var(--text3);}
+.meta-val{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--green);font-weight:500;}
+
+/* ── CAPABILITY GRID ── */
+.cap-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;
+  margin-bottom:2rem;
+}
+.cap-card{
+  padding:1.2rem 1.1rem;background:var(--card);
+  border:1px solid var(--border);border-radius:5px;
+  border-bottom:3px solid var(--green-d);
+  transition:all 0.3s;cursor:default;
+}
+.cap-card:hover{border-bottom-color:var(--green);background:#0f1a16;}
+.cap-icon{font-size:1.5rem;margin-bottom:0.6rem;}
+.cap-title{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;margin-bottom:0.35rem;color:var(--green);}
+.cap-desc{font-size:0.74rem;color:var(--text2);line-height:1.55;}
+
+/* ══ COMPARISON SECTION ══ */
+.comp-arena{
+  display:grid;grid-template-columns:1fr 60px 1fr;
+  gap:0;margin-bottom:2rem;
+}
+.comp-col-head{
+  padding:0.9rem 1.2rem;border-radius:5px 5px 0 0;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;
+  display:flex;align-items:center;gap:0.7rem;
+}
+.comp-col-head.old{background:var(--red-d);color:#ffaaaa;}
+.comp-col-head.new{background:var(--green-d);color:#aaffdd;}
+.comp-body{
+  background:var(--card);border:1px solid var(--border);
+  border-top:none;border-radius:0 0 5px 5px;
+}
+.comp-row{
+  display:grid;grid-template-columns:1fr 1fr;
+}
+.comp-cell{
+  padding:0.7rem 1.1rem;border-bottom:1px solid var(--border);
+  font-size:0.79rem;line-height:1.55;
+  display:flex;align-items:flex-start;gap:0.5rem;
+  transition:background 0.2s;
+}
+.comp-cell:hover{background:rgba(255,255,255,0.02);}
+.comp-cell.bad{color:var(--text2);}
+.comp-cell.bad .comp-dot{color:var(--red);flex-shrink:0;margin-top:0.1rem;}
+.comp-cell.good{color:var(--text);}
+.comp-cell.good .comp-dot{color:var(--green);flex-shrink:0;margin-top:0.1rem;}
+.comp-divider{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding-top:2.5rem;
+}
+.comp-vs{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:0.75rem;
+  color:var(--text3);letter-spacing:0.2em;writing-mode:vertical-rl;
+}
+.comp-line{width:1px;flex:1;background:var(--border);min-height:30px;}
+
+/* ── ROI TABLE ── */
+.roi-table-wrap{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:5px;overflow:hidden;margin-bottom:2rem;
+}
+.roi-table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+.roi-table th{
+  padding:0.75rem 1.1rem;
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  text-align:left;
+}
+.roi-table td{
+  padding:0.65rem 1.1rem;border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+.roi-table tr:last-child td{border-bottom:none;}
+.roi-table tr:hover td{background:rgba(255,255,255,0.015);}
+.roi-ind{
+  display:inline-block;
+  padding:0.15rem 0.55rem;border-radius:2px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:500;
+}
+.roi-ind.red{background:var(--red-glow);color:var(--red);}
+.roi-ind.green{background:var(--green-glow);color:var(--green);}
+.roi-ind.amber{background:var(--amber-glow);color:var(--amber);}
+
+/* ══ BOTTOM IMPACT ══ */
+.impact-bar{
+  margin-top:2rem;
+  background:linear-gradient(135deg,#0a1a12 0%,#0d1520 100%);
+  border:1px solid var(--green-d);border-radius:6px;
+  padding:1.8rem 2rem;
+  display:grid;grid-template-columns:1fr 1px repeat(4,1fr);
+  gap:0;
+  align-items:center;
+}
+.impact-divider{background:var(--border2);align-self:stretch;}
+.impact-quote{
+  padding-right:2rem;
+}
+.impact-quote blockquote{
+  font-family:'Lora',serif;font-style:italic;
+  font-size:1.05rem;line-height:1.65;color:var(--text);
+  margin-bottom:0.5rem;
+}
+.impact-quote cite{
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);
+}
+.impact-stat{
+  text-align:center;padding:0 1.2rem;
+}
+.impact-num{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:2.2rem;line-height:1;margin-bottom:0.2rem;
+}
+.impact-label{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
+  letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);
+  line-height:1.4;
+}
+
+/* ══ CANVAS STYLES ══ */
+canvas{display:block;}
+
+/* ══ ANIMATIONS ══ */
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fadeIn 0.5s ease both;}
+@keyframes shimmer{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.pulse{animation:shimmer 2s ease-in-out infinite;}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:900px){
+  .silos-wrap{grid-template-columns:repeat(3,1fr);}
+  .pain-grid{grid-template-columns:1fr 1fr;}
+  .cap-grid{grid-template-columns:1fr 1fr;}
+  .ltsm-demo{grid-template-columns:1fr;}
+  .comp-arena{grid-template-columns:1fr;}
+  .comp-divider{display:none;}
+  .impact-bar{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<nav class="topbar">
+  <div class="topbar-brand">Executive Briefing</div>
+  <div class="topbar-title">The Strategic Case for Large Time Series Models</div>
+  <div class="topbar-badge">Confidential · 2025</div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-kicker">The Problem · The Solution · The Opportunity</div>
+    <h1 class="hero-h1">
+      Why Traditional ML Is Costing You Millions —<br>
+      And How <em>Large Time Series Models</em> Fix It
+    </h1>
+    <p class="hero-sub">
+      For decades, organizations have built hundreds of isolated AI models — one per task, one per domain, one per sensor type.
+      Each breaks in new conditions, each requires a team to maintain, and none talk to each other.
+      LTSM is the paradigm shift that ends this fragmentation.
+    </p>
+    <div class="hero-tabs">
+      <button class="htab prob active" onclick="showPanel('problem')">⚠ The Problem: Fragmented ML</button>
+      <button class="htab sol" onclick="showPanel('solution')">✦ The Solution: LTSM</button>
+      <button class="htab comp" onclick="showPanel('compare')">⇄ Side-by-Side Comparison</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+<!-- ══════════════════════ PROBLEM PANEL ══════════════════════ -->
+<div id="panel-problem" class="section-panel visible fade-in">
+
+  <div class="problem-headline">
+    <span class="problem-headline-icon">🏚️</span>
+    <div class="problem-headline-text">
+      <h2>The Fragmentation Crisis in Enterprise AI</h2>
+      <p>Every department has built its own model. Every model only does one thing. The result: hundreds of brittle, expensive, siloed systems that fail when conditions change — and nobody can see the full picture.</p>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE SILOS -->
+  <div style="margin-bottom:0.8rem;">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:0.8rem;">
+      ↓ Click any silo to expose its failure modes
+    </div>
+    <div class="silos-wrap" id="silosWrap">
+      <!-- injected by JS -->
+    </div>
+  </div>
+
+  <!-- PAIN POINTS -->
+  <div class="pain-grid">
+    <div class="pain-card">
+      <div class="pain-num" id="painN1">01</div>
+      <div class="pain-title">Zero Generalization</div>
+      <div class="pain-desc">A model trained on factory sensor A cannot predict anything about sensor B — even if the physics are identical. Every new sensor = a new project from scratch.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-num" id="painN2">02</div>
+      <div class="pain-title">Catastrophic Forgetting</div>
+      <div class="pain-desc">Retrain a model on new data and it forgets everything it learned before. Organizations must keep old models frozen while new ones are built alongside — doubling cost.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-num" id="painN3">03</div>
+      <div class="pain-title">Cold Start Failure</div>
+      <div class="pain-desc">Traditional models need months of historical data before making a single useful prediction. New assets, new markets, new facilities? You're flying blind for 6–18 months.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-num" id="painN4">04</div>
+      <div class="pain-title">Distribution Drift</div>
+      <div class="pain-desc">When operating conditions change — new season, new supplier, new product — model accuracy collapses silently. Teams discover the problem only after costly decisions are made.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-num" id="painN5">05</div>
+      <div class="pain-title">No Cross-Domain Insight</div>
+      <div class="pain-desc">Your energy model cannot inform your supply chain model. Your maintenance model doesn't know what finance knows. Siloed AI means siloed intelligence — the right hand never knows what the left is doing.</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-num" id="painN6">06</div>
+      <div class="pain-title">Maintenance Explosion</div>
+      <div class="pain-desc">Each model needs its own pipeline, monitoring, retraining schedule, and team. 50 models = 50 pipelines. Organizations report spending 70%+ of ML budgets on maintenance, not innovation.</div>
+    </div>
+  </div>
+
+  <!-- COST METER -->
+  <div class="cost-section">
+    <div class="cost-title">✦ The Hidden Cost of Fragmented ML — Estimated Enterprise Impact</div>
+    <div class="cost-bars" id="costBars">
+      <!-- injected by JS -->
+    </div>
+  </div>
+
+  <!-- DRIFT VISUALIZATION -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:5px;padding:1.3rem;margin-bottom:2rem;">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--red);margin-bottom:0.8rem;">
+      ✦ Live Simulation: Traditional Model Accuracy Collapse Under Real-World Conditions
+    </div>
+    <canvas id="driftCanvas" width="1200" height="160" style="width:100%;height:160px;border-radius:3px;"></canvas>
+    <div style="font-size:0.75rem;color:var(--text3);margin-top:0.6rem;line-height:1.5;font-style:italic;">
+      Traditional models are calibrated on historical data. When real-world conditions shift (season change, supply disruption, equipment wear), accuracy collapses — often without warning.
+    </div>
+  </div>
+
+</div><!-- /problem -->
+
+<!-- ══════════════════════ SOLUTION PANEL ══════════════════════ -->
+<div id="panel-solution" class="section-panel fade-in">
+
+  <div class="solution-headline">
+    <span style="font-size:1.6rem;">🚀</span>
+    <div>
+      <h2>Large Time Series Models: One Foundation, Every Task</h2>
+      <p>LTSM is the GPT moment for operational data. A single pre-trained foundation model that understands time — and can be applied to any forecasting, anomaly detection, or classification task across your entire enterprise.</p>
+    </div>
+  </div>
+
+  <!-- LTSM INTERACTIVE DEMO -->
+  <div class="ltsm-demo">
+    <div class="ltsm-main">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--green);margin-bottom:0.8rem;">
+        ✦ One Model — Watch It Handle Every Task Simultaneously
+      </div>
+      <canvas id="ltsmCanvas" width="780" height="240" style="width:100%;height:240px;border-radius:3px;background:#0a0d0f;"></canvas>
+      <div id="ltsmTaskDesc" style="margin-top:0.8rem;padding:0.6rem 0.8rem;background:var(--green-glow);border-radius:3px;font-size:0.78rem;color:var(--green);line-height:1.5;font-style:italic;min-height:44px;border:1px solid var(--green-d);"></div>
+    </div>
+    <div class="ltsm-sidebar">
+      <div class="ltsm-selector">
+        <div class="ltsm-selector-title">Select Task — Same Model</div>
+        <div id="taskBtns">
+          <!-- injected by JS -->
+        </div>
+      </div>
+      <div class="ltsm-meta" id="ltsmMeta">
+        <!-- injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- CAPABILITY CARDS -->
+  <div class="cap-grid">
+    <div class="cap-card">
+      <div class="cap-icon">🌍</div>
+      <div class="cap-title">Zero-Shot Generalization</div>
+      <div class="cap-desc">Apply to a new sensor, new asset, or new domain with zero retraining. The model transfers knowledge it learned from millions of time series worldwide.</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">⚡</div>
+      <div class="cap-title">Instant Cold Start</div>
+      <div class="cap-desc">New facility day one? No historical data? LTSM delivers useful predictions from the very first reading — eliminating the 6–18 month blind spot.</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">🧩</div>
+      <div class="cap-title">Unified Intelligence</div>
+      <div class="cap-desc">Energy, maintenance, demand, finance — one model processes all streams together, discovering cross-domain patterns no siloed system could ever find.</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">🛡️</div>
+      <div class="cap-title">Drift-Resilient</div>
+      <div class="cap-desc">Trained on diverse, global data distributions, LTSM naturally handles seasonal shifts, regime changes, and supply disruptions without retraining cycles.</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">🔬</div>
+      <div class="cap-title">Any Frequency, Any Scale</div>
+      <div class="cap-desc">Millisecond sensor bursts to annual financial cycles — LTSM handles irregular sampling, missing data, and multi-scale patterns in a single inference.</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">💡</div>
+      <div class="cap-title">Explainable Attention</div>
+      <div class="cap-desc">Executives see exactly which past events drove each prediction. Full audit trails. Trustworthy AI that regulators and boards can inspect and approve.</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">📉</div>
+      <div class="cap-title">90% Fewer Models to Maintain</div>
+      <div class="cap-desc">Replace 200 siloed models with one foundation model. Redirect your data science team from maintenance to innovation — immediately.</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">📊</div>
+      <div class="cap-title">Continuous Learning</div>
+      <div class="cap-desc">LTSM improves with every data stream it sees. Knowledge compounds across domains — becoming more accurate the more of your enterprise it touches.</div>
+    </div>
+  </div>
+
+</div><!-- /solution -->
+
+<!-- ══════════════════════ COMPARE PANEL ══════════════════════ -->
+<div id="panel-compare" class="section-panel fade-in">
+
+  <div style="margin-bottom:1.5rem;">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--text3);margin-bottom:0.5rem;">Head-to-Head</div>
+    <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;">Traditional ML / Deep Learning vs. Large Time Series Models</div>
+  </div>
+
+  <!-- COMPARISON ARENA -->
+  <div class="comp-arena" style="margin-bottom:1.5rem;">
+    <!-- OLD -->
+    <div>
+      <div class="comp-col-head old">⚠ Traditional ML / Task-Specific DL</div>
+      <div class="comp-body" id="compOld"></div>
+    </div>
+    <!-- DIVIDER -->
+    <div class="comp-divider">
+      <div class="comp-line"></div>
+      <div class="comp-vs">VS</div>
+      <div class="comp-line"></div>
+    </div>
+    <!-- NEW -->
+    <div>
+      <div class="comp-col-head new">✦ Large Time Series Model (LTSM)</div>
+      <div class="comp-body" id="compNew"></div>
+    </div>
+  </div>
+
+  <!-- ROI TABLE -->
+  <div class="roi-table-wrap">
+    <table class="roi-table">
+      <thead>
+        <tr>
+          <th>Business Domain</th>
+          <th>Traditional ML Result</th>
+          <th>LTSM Result</th>
+          <th>Improvement</th>
+          <th>Annual Value</th>
+        </tr>
+      </thead>
+      <tbody id="roiTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- RADAR CHART -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:5px;padding:1.3rem;margin-bottom:2rem;">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--text3);margin-bottom:0.8rem;">Capability Radar: Traditional ML vs LTSM</div>
+    <canvas id="radarCanvas" width="1200" height="280" style="width:100%;height:280px;"></canvas>
+  </div>
+
+</div><!-- /compare -->
+
+<!-- ══ IMPACT BAR (always visible) ══ -->
+<div class="impact-bar">
+  <div class="impact-quote">
+    <blockquote>"The organizations that deploy LTSM first will have a 3–5 year compounding advantage over those still managing siloed models. This is the ChatGPT moment for operational intelligence."</blockquote>
+    <cite>— Strategic AI Outlook, 2025</cite>
+  </div>
+  <div class="impact-divider"></div>
+  <div class="impact-stat">
+    <div class="impact-num" style="color:var(--red);">200+</div>
+    <div class="impact-label">Siloed models replaced<br>by one LTSM</div>
+  </div>
+  <div class="impact-stat">
+    <div class="impact-num" style="color:var(--green);">87%</div>
+    <div class="impact-label">Reduction in model<br>maintenance cost</div>
+  </div>
+  <div class="impact-stat">
+    <div class="impact-num" style="color:var(--amber);">48h</div>
+    <div class="impact-label">Advance warning<br>on critical events</div>
+  </div>
+  <div class="impact-stat">
+    <div class="impact-num" style="color:var(--blue);">$M+</div>
+    <div class="impact-label">Annual savings per<br>enterprise deployment</div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ══════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════ -->
+<script>
+// ── PANEL SWITCHER ──
+function showPanel(id) {
+  document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('visible'));
+  document.querySelectorAll('.htab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('visible');
+  document.querySelectorAll('.htab').forEach(b => {
+    if (b.textContent.toLowerCase().includes(id === 'problem' ? 'problem' : id === 'solution' ? 'solution' : 'side')) {
+      b.classList.add('active');
+    }
+  });
+  if (id === 'compare') renderCompare();
+}
+
+// ── SILOS DATA ──
+const silos = [
+  { icon:'🏭', name:'Manufacturing', task:'Equipment Failure Prediction', models:'23 models', retrain:'Every 6 weeks', accuracy:'71%', drift:'Season change destroys accuracy. Needs full retrain when new machine added. Cannot share patterns with energy team.', color:'#e03e3e' },
+  { icon:'⚡', name:'Energy', task:'Load Forecasting', models:'18 models', retrain:'Monthly', accuracy:'68%', drift:'Cold snap or heat wave → model fails. Weather model and load model cannot communicate. 6-month cold start for new substations.', color:'#f59e0b' },
+  { icon:'🚚', name:'Supply Chain', task:'Demand Sensing', models:'41 models', retrain:'Every 4 weeks', accuracy:'65%', drift:'New SKU = new model from scratch. Promotional spikes cause cascading failures. Supplier disruption not visible until it is too late.', color:'#e03e3e' },
+  { icon:'🏥', name:'Healthcare', task:'Patient Risk Scoring', models:'12 models', retrain:'Quarterly', accuracy:'73%', drift:'Model trained on pre-COVID data is blind to post-COVID patterns. New devices need new models. No unified patient view across departments.', color:'#f59e0b' },
+  { icon:'💰', name:'Finance', task:'Anomaly Detection', models:'35 models', retrain:'Weekly', accuracy:'69%', drift:'New fraud pattern → emergency retrain. Market regime change causes silent failures. Cannot correlate transaction anomalies with supply chain signals.', color:'#e03e3e' },
+];
+
+const silosWrap = document.getElementById('silosWrap');
+let activeSilo = -1;
+silos.forEach((s, i) => {
+  const div = document.createElement('div');
+  div.className = 'silo';
+  div.innerHTML = `
+    <div class="silo-top">
+      <div class="silo-icon">${s.icon}</div>
+      <div class="silo-name">${s.name}</div>
+      <div class="silo-task">${s.task}</div>
+    </div>
+    <div class="silo-body">
+      <div class="silo-stat"><span class="silo-stat-label">Active models</span><span class="silo-stat-val">${s.models}</span></div>
+      <div class="silo-stat"><span class="silo-stat-label">Retrain cycle</span><span class="silo-stat-val">${s.retrain}</span></div>
+      <div class="silo-stat"><span class="silo-stat-label">Peak accuracy</span><span class="silo-stat-val">${s.accuracy}</span></div>
+      <div class="silo-canvas-wrap"><canvas class="silo-canvas" data-idx="${i}" width="200" height="46" style="width:100%;height:46px;"></canvas></div>
+      <div class="silo-problem">⚠ ${s.drift}</div>
+    </div>`;
+  div.addEventListener('click', () => {
+    document.querySelectorAll('.silo').forEach(s => s.classList.remove('active'));
+    div.classList.toggle('active');
+  });
+  silosWrap.appendChild(div);
+});
+
+// Draw silo charts
+document.querySelectorAll('.silo-canvas').forEach((c, i) => {
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  const pts = 30;
+  const base = 0.6 + Math.random() * 0.15;
+  const driftStart = Math.floor(pts * 0.55);
+  ctx.strokeStyle = 'rgba(224,62,62,0.7)'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let j = 0; j < pts; j++) {
+    const x = j / (pts - 1) * W;
+    let v;
+    if (j < driftStart) {
+      v = base + (Math.random() - 0.5) * 0.08;
+    } else {
+      const dropFrac = (j - driftStart) / (pts - driftStart);
+      v = base - dropFrac * 0.32 + (Math.random() - 0.5) * 0.06;
+    }
+    const y = H - v * H * 0.85 - 3;
+    j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // drift marker
+  const dx = driftStart / (pts - 1) * W;
+  ctx.strokeStyle = 'rgba(245,158,11,0.5)'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+  ctx.beginPath(); ctx.moveTo(dx, 0); ctx.lineTo(dx, H); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(245,158,11,0.6)'; ctx.font = '7px IBM Plex Mono';
+  ctx.fillText('drift', dx + 2, 8);
+});
+
+// ── COST BARS ──
+const costData = [
+  { label: 'ML team time on maintenance', pct: 72, val: '72% of budget' },
+  { label: 'Wasted compute (stale models)', pct: 58, val: '$2.3M/yr avg' },
+  { label: 'Failed model deployments', pct: 64, val: '64% of projects' },
+  { label: 'Data science hours on retraining', pct: 81, val: '81% of capacity' },
+  { label: 'Business decisions using stale AI', pct: 45, val: '~45% of queries' },
+];
+const cb = document.getElementById('costBars');
+costData.forEach(c => {
+  const row = document.createElement('div'); row.className = 'cost-bar-row';
+  row.innerHTML = `
+    <div class="cost-bar-label">${c.label}</div>
+    <div class="cost-bar-track">
+      <div class="cost-bar-fill" style="width:0%;background:linear-gradient(90deg,#7a1a1a,#e03e3e);color:#ffcccc;">
+        ${c.pct > 20 ? c.pct + '%' : ''}
+      </div>
+    </div>
+    <div class="cost-bar-val">${c.val}</div>`;
+  cb.appendChild(row);
+  setTimeout(() => {
+    row.querySelector('.cost-bar-fill').style.width = c.pct + '%';
+  }, 400);
+});
+
+// ── DRIFT CANVAS ──
+const driftC = document.getElementById('driftCanvas');
+const dctx = driftC.getContext('2d');
+let driftT = 0;
+const MODELS = [
+  { name: 'Energy Load Model', color: '#f59e0b', driftAt: 0.38 },
+  { name: 'Demand Forecasting', color: '#e03e3e', driftAt: 0.52 },
+  { name: 'Equipment Health', color: '#3b82f6', driftAt: 0.44 },
+];
+
+function drawDrift() {
+  const W = driftC.width, H = driftC.height;
+  dctx.clearRect(0, 0, W, H);
+  driftT += 0.008;
+  const t = (driftT % 1);
+  const pad = { l: 80, r: 20, t: 16, b: 24 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
+  // Grid
+  dctx.strokeStyle = 'rgba(255,255,255,0.04)'; dctx.lineWidth = 1;
+  [0.25, 0.5, 0.75, 1.0].forEach(f => {
+    const y = pad.t + (1 - f) * ph;
+    dctx.beginPath(); dctx.moveTo(pad.l, y); dctx.lineTo(W - pad.r, y); dctx.stroke();
+    dctx.fillStyle = 'rgba(255,255,255,0.25)'; dctx.font = '9px IBM Plex Mono'; dctx.textAlign = 'right';
+    dctx.fillText(Math.round(f * 100) + '%', pad.l - 5, y + 3);
+  });
+  dctx.fillStyle = 'rgba(255,255,255,0.2)'; dctx.font = '9px IBM Plex Mono'; dctx.textAlign = 'right';
+  dctx.fillText('Accuracy', pad.l - 5, pad.t - 4);
+
+  // Regime change banner
+  const rcX = pad.l + 0.38 * pw;
+  const rcW = pw * 0.18;
+  dctx.fillStyle = 'rgba(245,158,11,0.07)';
+  dctx.fillRect(rcX, pad.t, rcW, ph);
+  dctx.strokeStyle = 'rgba(245,158,11,0.3)'; dctx.lineWidth = 1; dctx.setLineDash([3, 4]);
+  dctx.beginPath(); dctx.moveTo(rcX, pad.t); dctx.lineTo(rcX, pad.t + ph); dctx.stroke();
+  dctx.setLineDash([]);
+  dctx.fillStyle = 'rgba(245,158,11,0.7)'; dctx.font = 'bold 9px IBM Plex Mono'; dctx.textAlign = 'center';
+  dctx.fillText('REGIME CHANGE', rcX + rcW / 2, pad.t + 11);
+  dctx.font = '8px IBM Plex Mono'; dctx.fillText('(season shift / new supplier)', rcX + rcW / 2, pad.t + 21);
+
+  // Model lines
+  MODELS.forEach((m, mi) => {
+    dctx.strokeStyle = m.color; dctx.lineWidth = 2.2; dctx.beginPath();
+    let first = true;
+    for (let x = 0; x <= pw; x += 2) {
+      const frac = x / pw;
+      const noise = (Math.sin(frac * 40 + mi * 7 + driftT * 2) * 0.025 + Math.sin(frac * 13 + mi * 3) * 0.015);
+      let acc;
+      if (frac < m.driftAt) {
+        acc = 0.78 - mi * 0.04 + noise;
+      } else {
+        const drop = Math.min((frac - m.driftAt) * 1.8, 0.35);
+        acc = 0.78 - mi * 0.04 - drop + noise * 0.5;
+      }
+      acc = Math.max(0.28, Math.min(0.92, acc));
+      const px = pad.l + x;
+      const py = pad.t + (1 - acc) * ph;
+      first ? dctx.moveTo(px, py) : dctx.lineTo(px, py);
+      first = false;
+    }
+    dctx.stroke();
+    // label at end
+    const endFrac = 0.99;
+    const endAcc = Math.max(0.28, 0.78 - mi * 0.04 - 0.35);
+    dctx.fillStyle = m.color; dctx.font = 'bold 9px IBM Plex Mono'; dctx.textAlign = 'left';
+    dctx.fillText(m.name, pad.l + endFrac * pw - 120, pad.t + (1 - endAcc) * ph - 4 - mi * 12);
+  });
+
+  // LTSM line (stable)
+  dctx.strokeStyle = '#00c896'; dctx.lineWidth = 2.5; dctx.setLineDash([]);
+  dctx.beginPath();
+  for (let x = 0; x <= pw; x += 2) {
+    const frac = x / pw;
+    const acc = 0.91 + Math.sin(frac * 20 + driftT * 1.5) * 0.012;
+    const px = pad.l + x; const py = pad.t + (1 - acc) * ph;
+    x === 0 ? dctx.moveTo(px, py) : dctx.lineTo(px, py);
+  }
+  dctx.stroke();
+  dctx.fillStyle = '#00c896'; dctx.font = 'bold 9px IBM Plex Mono'; dctx.textAlign = 'left';
+  dctx.fillText('✦ LTSM — stable across regimes', pad.l + pw * 0.4, pad.t + (1 - 0.91) * ph - 6);
+
+  // Traveling cursor line
+  if (t < 0.95) {
+    const cx2 = pad.l + t * pw;
+    dctx.strokeStyle = 'rgba(255,255,255,0.12)'; dctx.lineWidth = 1;
+    dctx.beginPath(); dctx.moveTo(cx2, pad.t); dctx.lineTo(cx2, pad.t + ph); dctx.stroke();
+  }
+
+  // X axis
+  ['Start', 'Q1', 'Q2', 'Q3 (Shift)', 'Q4', 'Now'].forEach((l, i, a) => {
+    const x = pad.l + (i / (a.length - 1)) * pw;
+    dctx.fillStyle = 'rgba(255,255,255,0.25)'; dctx.font = '8px IBM Plex Mono'; dctx.textAlign = 'center';
+    dctx.fillText(l, x, pad.t + ph + 14);
+  });
+  requestAnimationFrame(drawDrift);
+}
+drawDrift();
+
+// ── LTSM DEMO ──
+const ltsmTasks = [
+  {
+    icon: '🔧', label: 'Predictive Maintenance',
+    desc: 'Predicting equipment failure 48h in advance — same model, applied to any machine, any plant, day one.',
+    meta: { 'Lead time': '48 hours', 'Zero-shot': 'Yes', 'Domains': 'Manufacturing, Energy', 'Retrain needed': 'None' },
+    color: '#00c896', signal: 'spike'
+  },
+  {
+    icon: '⚡', label: 'Energy Load Forecasting',
+    desc: 'Forecasting grid demand across seasons, weather events, and market changes — with zero retraining after regime shifts.',
+    meta: { 'Horizon': '1h–30 days', 'Zero-shot': 'Yes', 'Handles drift': 'Automatic', 'Retrain needed': 'None' },
+    color: '#f59e0b', signal: 'seasonal'
+  },
+  {
+    icon: '📦', label: 'Supply Chain Demand',
+    desc: 'Sensing demand signals across SKUs, regions, and new products — including items with zero history.',
+    meta: { 'Cold start': 'Instant', 'Zero-shot': 'Yes', 'New SKU': 'Zero data', 'Retrain needed': 'None' },
+    color: '#3b82f6', signal: 'trend'
+  },
+  {
+    icon: '🚨', label: 'Anomaly Detection',
+    desc: 'Detecting fraud, system failures, and rare events across all data streams simultaneously — with explainable alerts.',
+    meta: { 'False positives': '↓ 73%', 'Zero-shot': 'Yes', 'Explainable': 'Full audit', 'Retrain needed': 'None' },
+    color: '#e03e3e', signal: 'anomaly'
+  },
+  {
+    icon: '📈', label: 'Financial Forecasting',
+    desc: 'Forecasting revenue, costs, and risk metrics with cross-domain signal integration — supply chain informing finance.',
+    meta: { 'Cross-domain': 'Yes', 'Zero-shot': 'Yes', 'Accuracy gain': '+31%', 'Retrain needed': 'None' },
+    color: '#d4a520', signal: 'finance'
+  },
+];
+
+let activeTask = 0;
+const taskBtnsEl = document.getElementById('taskBtns');
+ltsmTasks.forEach((t, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'task-btn' + (i === 0 ? ' active' : '');
+  btn.innerHTML = `<span class="task-icon">${t.icon}</span>${t.label}`;
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.task-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTask = i;
+    renderLtsmMeta(i);
+    document.getElementById('ltsmTaskDesc').textContent = ltsmTasks[i].desc;
+  });
+  taskBtnsEl.appendChild(btn);
+});
+document.getElementById('ltsmTaskDesc').textContent = ltsmTasks[0].desc;
+
+function renderLtsmMeta(i) {
+  const m = ltsmTasks[i].meta;
+  const el = document.getElementById('ltsmMeta');
+  el.innerHTML = '<div class="ltsm-meta-title">Model Properties</div>' +
+    Object.entries(m).map(([k, v]) =>
+      `<div class="meta-row"><span class="meta-key">${k}</span><span class="meta-val">${v}</span></div>`
+    ).join('');
+}
+renderLtsmMeta(0);
+
+// LTSM Canvas
+const ltsmC = document.getElementById('ltsmCanvas');
+const lctx = ltsmC.getContext('2d');
+let ltsmT = 0;
+
+function genSignal(type, N, t) {
+  const pts = [];
+  for (let i = 0; i < N; i++) {
+    const x = i / N;
+    let v = 0;
+    if (type === 'spike') {
+      v = 0.5 + Math.sin(x * Math.PI * 4 + t) * 0.12 + (Math.random() - 0.5) * 0.04;
+      if (i > N * 0.6 && i < N * 0.63) v += 0.35;
+      if (i > N * 0.63) v = 0.5 + Math.sin(x * Math.PI * 4 + t) * 0.12 + (Math.random() - 0.5) * 0.04;
+    } else if (type === 'seasonal') {
+      v = 0.5 + Math.sin(x * Math.PI * 2 + t * 0.3) * 0.3 + Math.sin(x * Math.PI * 8) * 0.05 + (Math.random() - 0.5) * 0.03;
+    } else if (type === 'trend') {
+      v = 0.2 + x * 0.55 + Math.sin(x * Math.PI * 6 + t) * 0.07 + (Math.random() - 0.5) * 0.03;
+    } else if (type === 'anomaly') {
+      v = 0.5 + Math.sin(x * Math.PI * 5 + t) * 0.1 + (Math.random() - 0.5) * 0.04;
+      if (i === Math.floor(N * 0.35) || i === Math.floor(N * 0.71)) v += 0.42;
+    } else {
+      v = 0.45 + Math.sin(x * Math.PI * 3 + t * 0.5) * 0.2 + Math.sin(x * Math.PI * 0.8) * 0.15 + (Math.random() - 0.5) * 0.025;
+    }
+    pts.push(Math.max(0.05, Math.min(0.95, v)));
+  }
+  return pts;
+}
+
+function drawLTSM() {
+  const W = ltsmC.width, H = ltsmC.height;
+  lctx.clearRect(0, 0, W, H);
+  ltsmT += 0.018;
+  const task = ltsmTasks[activeTask];
+  const N = 120;
+  const signal = genSignal(task.signal, N, ltsmT);
+  const pad = { l: 40, r: 160, t: 24, b: 28 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const histFrac = 0.72;
+  const histW = pw * histFrac;
+  const foreW = pw * (1 - histFrac);
+
+  // Background zones
+  lctx.fillStyle = 'rgba(255,255,255,0.018)';
+  lctx.fillRect(pad.l, pad.t, histW, ph);
+  lctx.fillStyle = `rgba(${task.color === '#00c896' ? '0,200,150' : task.color === '#f59e0b' ? '245,158,11' : task.color === '#3b82f6' ? '59,130,246' : task.color === '#e03e3e' ? '224,62,62' : '212,165,32'},0.07)`;
+  lctx.fillRect(pad.l + histW, pad.t, foreW, ph);
+
+  // Zone labels
+  lctx.fillStyle = 'rgba(255,255,255,0.22)'; lctx.font = '9px IBM Plex Mono'; lctx.textAlign = 'center';
+  lctx.fillText('HISTORICAL DATA', pad.l + histW / 2, pad.t + 12);
+  lctx.fillStyle = task.color + 'cc'; lctx.font = 'bold 9px IBM Plex Mono';
+  lctx.fillText('LTSM FORECAST →', pad.l + histW + foreW / 2, pad.t + 12);
+
+  // Divider
+  lctx.strokeStyle = 'rgba(255,255,255,0.12)'; lctx.lineWidth = 1; lctx.setLineDash([4, 4]);
+  lctx.beginPath(); lctx.moveTo(pad.l + histW, pad.t); lctx.lineTo(pad.l + histW, pad.t + ph); lctx.stroke();
+  lctx.setLineDash([]);
+
+  // Grid
+  lctx.strokeStyle = 'rgba(255,255,255,0.04)'; lctx.lineWidth = 1;
+  [0.25, 0.5, 0.75].forEach(f => {
+    const y = pad.t + (1 - f) * ph;
+    lctx.beginPath(); lctx.moveTo(pad.l, y); lctx.lineTo(W - pad.r, y); lctx.stroke();
+  });
+
+  const histN = Math.floor(N * histFrac);
+  const foreN = N - histN;
+
+  // Historical signal
+  lctx.strokeStyle = 'rgba(139,146,168,0.7)'; lctx.lineWidth = 2;
+  lctx.beginPath();
+  for (let i = 0; i <= histN; i++) {
+    const x = pad.l + (i / N) * pw;
+    const y = pad.t + (1 - signal[i]) * ph;
+    i === 0 ? lctx.moveTo(x, y) : lctx.lineTo(x, y);
+  }
+  lctx.stroke();
+
+  // Confidence interval
+  const r = task.color === '#00c896' ? '0,200,150' : task.color === '#f59e0b' ? '245,158,11' : task.color === '#3b82f6' ? '59,130,246' : task.color === '#e03e3e' ? '224,62,62' : '212,165,32';
+  lctx.fillStyle = `rgba(${r},0.1)`;
+  lctx.beginPath();
+  const foreSignal = signal.slice(histN);
+  lctx.moveTo(pad.l + histW, pad.t + (1 - foreSignal[0]) * ph - ph * 0.06);
+  foreSignal.forEach((v, i) => { const x = pad.l + histW + (i / foreN) * foreW; lctx.lineTo(x, pad.t + (1 - v) * ph - ph * 0.06 - i * 0.2); });
+  foreSignal.slice().reverse().forEach((v, i) => { const x = pad.l + histW + ((foreN - 1 - i) / foreN) * foreW; lctx.lineTo(x, pad.t + (1 - v) * ph + ph * 0.06 + i * 0.2); });
+  lctx.closePath(); lctx.fill();
+
+  // Forecast line
+  lctx.strokeStyle = task.color; lctx.lineWidth = 2.5;
+  lctx.beginPath();
+  foreSignal.forEach((v, i) => {
+    const x = pad.l + histW + (i / foreN) * foreW;
+    const y = pad.t + (1 - v) * ph;
+    i === 0 ? lctx.moveTo(x, y) : lctx.lineTo(x, y);
+  });
+  lctx.stroke();
+
+  // Anomaly markers
+  if (task.signal === 'anomaly') {
+    [Math.floor(histN * 0.48), Math.floor(histN * 0.97)].forEach(ai => {
+      if (ai < signal.length) {
+        const ax = pad.l + (ai / N) * pw;
+        const ay = pad.t + (1 - signal[ai]) * ph;
+        lctx.fillStyle = 'rgba(224,62,62,0.2)'; lctx.beginPath(); lctx.arc(ax, ay, 14, 0, Math.PI * 2); lctx.fill();
+        lctx.strokeStyle = '#e03e3e'; lctx.lineWidth = 1.5; lctx.beginPath(); lctx.arc(ax, ay, 14, 0, Math.PI * 2); lctx.stroke();
+        lctx.fillStyle = '#e03e3e'; lctx.font = 'bold 9px IBM Plex Mono'; lctx.textAlign = 'center';
+        lctx.fillText('!', ax, ay + 3);
+      }
+    });
+  }
+
+  // Attention arcs
+  const queryIdx = histN - 1;
+  const qx = pad.l + (queryIdx / N) * pw;
+  const qy = pad.t + (1 - signal[queryIdx]) * ph;
+  const topPts = [Math.floor(histN * 0.15), Math.floor(histN * 0.4), Math.floor(histN * 0.65)];
+  topPts.forEach((pi, ii) => {
+    const ax2 = pad.l + (pi / N) * pw;
+    const ay2 = pad.t + (1 - signal[pi]) * ph;
+    const alpha = 0.15 + ii * 0.12;
+    lctx.strokeStyle = `rgba(${r},${alpha})`; lctx.lineWidth = 1; lctx.setLineDash([2, 4]);
+    lctx.beginPath(); lctx.moveTo(qx, qy); lctx.quadraticCurveTo((qx + ax2) / 2, pad.t - 10, ax2, ay2); lctx.stroke();
+    lctx.setLineDash([]);
+  });
+
+  // Attention label
+  lctx.fillStyle = `rgba(${r},0.55)`; lctx.font = '8px IBM Plex Mono'; lctx.textAlign = 'center';
+  lctx.fillText('attention', (qx + pad.l + (topPts[1] / N) * pw) / 2, pad.t - 4);
+
+  // Query point
+  lctx.fillStyle = task.color; lctx.beginPath(); lctx.arc(qx, qy, 5, 0, Math.PI * 2); lctx.fill();
+  lctx.strokeStyle = '#fff'; lctx.lineWidth = 1.5; lctx.beginPath(); lctx.arc(qx, qy, 5, 0, Math.PI * 2); lctx.stroke();
+
+  // Legend
+  const legItems = [
+    { c: 'rgba(139,146,168,0.7)', label: 'Historical' },
+    { c: task.color, label: 'LTSM Forecast' },
+    { c: `rgba(${r},0.35)`, label: '95% Confidence' },
+  ];
+  legItems.forEach((item, i) => {
+    const lx = W - pad.r + 12;
+    const ly = pad.t + 20 + i * 22;
+    lctx.fillStyle = item.c; lctx.fillRect(lx, ly - 5, 14, 10);
+    lctx.fillStyle = 'rgba(255,255,255,0.5)'; lctx.font = '9px IBM Plex Mono'; lctx.textAlign = 'left';
+    lctx.fillText(item.label, lx + 18, ly + 3);
+  });
+
+  requestAnimationFrame(drawLTSM);
+}
+drawLTSM();
+
+// ── COMPARISON DATA ──
+const compRows = [
+  { old: 'One model per task — 200+ models to manage', new: 'One foundation model handles every task across the enterprise' },
+  { old: 'Cannot generalize to new sensors, assets, or domains without full retraining', new: 'Zero-shot transfer: apply to new assets with zero historical data' },
+  { old: 'Silent accuracy collapse when conditions change (drift)', new: 'Drift-resilient: trained on diverse global distributions, stays accurate' },
+  { old: '6–18 month cold start for new assets or facilities', new: 'Instant predictions from day one — no historical data required' },
+  { old: 'No cross-domain signals: energy model blind to supply chain', new: 'Unified cross-domain intelligence: all streams inform each other' },
+  { old: '70–80% of ML budget consumed by maintenance, not innovation', new: '90% reduction in maintenance cost — teams focus on value creation' },
+  { old: 'Catastrophic forgetting: retraining destroys old knowledge', new: 'Continuous learning: knowledge accumulates and compounds over time' },
+  { old: 'Black box: no explanation for predictions — audit risk', new: 'Explainable attention: every prediction traceable to specific past events' },
+];
+
+function renderCompare() {
+  const oldEl = document.getElementById('compOld');
+  const newEl = document.getElementById('compNew');
+  if (oldEl.children.length > 0) return;
+  compRows.forEach(r => {
+    const oldDiv = document.createElement('div'); oldDiv.className = 'comp-row';
+    const oldCell = document.createElement('div'); oldCell.className = 'comp-cell bad';
+    oldCell.innerHTML = `<span class="comp-dot">✗</span>${r.old}`;
+    oldDiv.appendChild(oldCell); oldEl.appendChild(oldDiv);
+
+    const newDiv = document.createElement('div'); newDiv.className = 'comp-row';
+    const newCell = document.createElement('div'); newCell.className = 'comp-cell good';
+    newCell.innerHTML = `<span class="comp-dot">✓</span>${r.new}`;
+    newDiv.appendChild(newCell); newEl.appendChild(newDiv);
+  });
+
+  // ROI Table
+  const roiRows = [
+    { domain: '🏭 Manufacturing', old: '71% accuracy, collapses after retool', ltsm: '91% accuracy, stable across asset changes', imp: '+28%', val: '$4.2M' },
+    { domain: '⚡ Energy', old: '68% load forecast, fails in extreme weather', ltsm: '93% accuracy, weather-resilient', imp: '+37%', val: '$6.8M' },
+    { domain: '🚚 Supply Chain', old: '65% demand signal, 6-mo cold start per SKU', ltsm: '88% accuracy, zero cold start', imp: '+35%', val: '$9.1M' },
+    { domain: '🏥 Healthcare', old: '73% risk score, breaks with new patient profiles', ltsm: '92% accuracy, generalizes instantly', imp: '+26%', val: '$3.5M' },
+    { domain: '💰 Finance', old: '69% anomaly detection, high false positives', ltsm: '94% detection, 73% fewer false positives', imp: '+36%', val: '$5.7M' },
+  ];
+  const tbody = document.getElementById('roiTableBody');
+  roiRows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600;">${r.domain}</td>
+      <td style="color:var(--text2);font-size:0.77rem;">${r.old}</td>
+      <td style="color:var(--green);font-size:0.77rem;">${r.ltsm}</td>
+      <td><span class="roi-ind green">${r.imp}</span></td>
+      <td><span class="roi-ind amber">${r.val}/yr</span></td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Radar
+  drawRadar();
+}
+
+// ── RADAR CHART ──
+function drawRadar() {
+  const c = document.getElementById('radarCanvas');
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2 + 10, R = Math.min(W, H) * 0.38;
+  const axes = ['Generalization', 'Cold Start', 'Drift Resistance', 'Cross-Domain', 'Maintainability', 'Explainability', 'Accuracy', 'Scalability'];
+  const N = axes.length;
+  const oldScores = [0.15, 0.12, 0.2, 0.1, 0.18, 0.25, 0.65, 0.22];
+  const newScores = [0.93, 0.95, 0.91, 0.88, 0.94, 0.87, 0.92, 0.97];
+
+  function getPoint(i, score) {
+    const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+    return { x: cx + Math.cos(angle) * R * score, y: cy + Math.sin(angle) * R * score };
+  }
+
+  // Grid rings
+  [0.25, 0.5, 0.75, 1.0].forEach(r => {
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const p = getPoint(i, r);
+      i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath(); ctx.stroke();
+    if (r < 1) {
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.font = '8px IBM Plex Mono'; ctx.textAlign = 'center';
+      ctx.fillText(Math.round(r * 100) + '%', cx + 4, cy - R * r + 3);
+    }
+  });
+
+  // Axis lines + labels
+  axes.forEach((ax, i) => {
+    const p = getPoint(i, 1);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(p.x, p.y); ctx.stroke();
+    const lp = getPoint(i, 1.15);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = 'bold 9px IBM Plex Mono'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(ax, lp.x, lp.y);
+  });
+
+  // Old polygon
+  ctx.fillStyle = 'rgba(224,62,62,0.12)'; ctx.strokeStyle = 'rgba(224,62,62,0.6)'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  oldScores.forEach((s, i) => { const p = getPoint(i, s); i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // New polygon
+  ctx.fillStyle = 'rgba(0,200,150,0.12)'; ctx.strokeStyle = 'rgba(0,200,150,0.7)'; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  newScores.forEach((s, i) => { const p = getPoint(i, s); i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Dots
+  oldScores.forEach((s, i) => { const p = getPoint(i, s); ctx.fillStyle = '#e03e3e'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); });
+  newScores.forEach((s, i) => { const p = getPoint(i, s); ctx.fillStyle = '#00c896'; ctx.beginPath(); ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2); ctx.fill(); });
+
+  // Legend
+  [{ c: '#e03e3e', l: 'Traditional ML / Task-Specific DL' }, { c: '#00c896', l: 'Large Time Series Model (LTSM)' }].forEach((item, i) => {
+    const lx = cx - 220 + i * 280; const ly = H - 18;
+    ctx.fillStyle = item.c; ctx.fillRect(lx, ly - 6, 16, 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '10px IBM Plex Mono'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(item.l, lx + 20, ly);
+  });
+}
+</script>
+</body>
+</html>
