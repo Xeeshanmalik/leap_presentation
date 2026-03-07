@@ -1,8 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, Zap, Puzzle, Shield, Activity, Eye, TrendingDown, RefreshCcw, Wrench, Package, AlertTriangle, LineChart } from 'lucide-react';
+import { Globe, Zap, Puzzle, Shield, Activity, Eye, TrendingDown, RefreshCcw, Wrench, Package, AlertTriangle, LineChart, WifiOff } from 'lucide-react';
 
 const TASKS = [
+    {
+        icon: <WifiOff size={18} />, label: 'Missing Sensor Imputation',
+        desc: 'Reconstructing missing telemetry data from faulty oil rig sensors in real-time with high fidelity.',
+        meta: { 'Data gap': 'Up to 72h', 'Zero-shot': 'Yes', 'Accuracy': '98.5%', 'Retrain needed': 'None' },
+        color: '#c084fc', signal: 'imputation'
+    },
     {
         icon: <Wrench size={18} />, label: 'Pump Failure Prediction',
         desc: 'Predicting ESP/RCP pump failure 48h in advance — same model, applied to any well pad, day one.',
@@ -74,10 +80,16 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                 } else if (type === 'anomaly') {
                     v = 0.5 + Math.sin(x * Math.PI * 5 + t) * 0.1 + (Math.random() - 0.5) * 0.04;
                     if (i === Math.floor(N * 0.35) || i === Math.floor(N * 0.71)) v += 0.42;
+                } else if (type === 'imputation') {
+                    // Clean base signal
+                    v = 0.4 + Math.sin(x * Math.PI * 3 + t * 0.8) * 0.2 + Math.cos(x * Math.PI * 7) * 0.08 + (Math.random() - 0.5) * 0.02;
+                    // Force gaps in historical data (will be handled in render)
+                    if (i > N * 0.25 && i < N * 0.35) v = null;
+                    if (i > N * 0.55 && i < N * 0.6) v = null;
                 } else {
                     v = 0.45 + Math.sin(x * Math.PI * 3 + t * 0.5) * 0.2 + Math.sin(x * Math.PI * 0.8) * 0.15 + (Math.random() - 0.5) * 0.025;
                 }
-                pts.push(Math.max(0.05, Math.min(0.95, v)));
+                pts.push(v === null ? null : Math.max(0.05, Math.min(0.95, v)));
             }
             return pts;
         };
@@ -123,7 +135,7 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '15px "Outfit", sans-serif'; ctx.textAlign = 'center';
             ctx.fillText('HISTORICAL DATA', pad.l + histW / 2, pad.t - 16);
             ctx.fillStyle = task.color; ctx.font = 'bold 15px "Outfit", sans-serif';
-            ctx.fillText('LTSM FORECAST →', pad.l + histW + foreW / 2, pad.t - 16);
+            ctx.fillText(task.signal === 'imputation' ? 'LTSM IMPUTATION →' : 'LTSM FORECAST →', pad.l + histW + foreW / 2, pad.t - 16);
 
             // Divider
             ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
@@ -143,12 +155,50 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             // Historical signal
             ctx.strokeStyle = 'rgba(139,146,168,0.7)'; ctx.lineWidth = 2;
             ctx.beginPath();
+            let isDrawing = false;
             for (let i = 0; i <= histN; i++) {
+                if (signal[i] === null) {
+                    isDrawing = false;
+                    continue;
+                }
                 const x = pad.l + (i / N) * pw;
                 const y = pad.t + (1 - signal[i]) * ph;
-                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                if (!isDrawing) {
+                    ctx.moveTo(x, y);
+                    isDrawing = true;
+                } else {
+                    ctx.lineTo(x, y);
+                }
             }
             ctx.stroke();
+
+            // Imputation reconstruction (dashed colored line over missing gaps)
+            if (task.signal === 'imputation') {
+                ctx.save();
+                ctx.strokeStyle = task.color;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                // We need to re-generate the clean signal without nulls to draw the imputation
+                const cleanSignal = genSignal('test', N, ltsmT);
+                let impDrawing = false;
+                for (let i = 0; i <= histN; i++) {
+                    if (signal[i] === null) {
+                        const x = pad.l + (i / N) * pw;
+                        const y = pad.t + (1 - cleanSignal[i]) * ph;
+                        if (!impDrawing) {
+                            ctx.moveTo(x, y);
+                            impDrawing = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    } else {
+                        impDrawing = false;
+                    }
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
 
             // Confidence interval (fill shape)
             ctx.fillStyle = task.color + '25'; // ~15% opacity
@@ -162,7 +212,8 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             // Forecast line
             ctx.strokeStyle = task.color; ctx.lineWidth = 2.5;
             ctx.beginPath();
-            foreSignal.forEach((v, i) => {
+            const cleanForeSignal = task.signal === 'imputation' ? genSignal('test', N, ltsmT).slice(histN) : foreSignal;
+            cleanForeSignal.forEach((v, i) => {
                 const x = pad.l + histW + (i / foreN) * foreW;
                 const y = pad.t + (1 - v) * ph;
                 i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
