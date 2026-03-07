@@ -292,7 +292,6 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                     const cv = signal[ci] !== null ? signal[ci] : cleanSignal[ci];
                     const cx = pad.l + (ci / N) * pw;
                     const cy = pad.t + (1 - cv) * ph;
-                    v
                     ctx.setLineDash([]);
                     ctx.beginPath();
                     ctx.arc(cx, cy, 4, 0, Math.PI * 2);
