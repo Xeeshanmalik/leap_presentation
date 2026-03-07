@@ -70,9 +70,9 @@ export default function SlideExecutiveProblem({ isExportMode }) {
             ctx.strokeStyle = 'rgba(245,158,11,0.3)'; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
             ctx.beginPath(); ctx.moveTo(rcX, pad.t); ctx.lineTo(rcX, pad.t + ph); ctx.stroke();
             ctx.setLineDash([]);
-            ctx.fillStyle = 'rgba(245,158,11,0.7)'; ctx.font = 'bold 16px "Outfit", sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText('REGIME CHANGE', rcX + rcW / 2, pad.t + 16);
-            ctx.font = '14px "Outfit", sans-serif'; ctx.fillText('(season / supplier shift)', rcX + rcW / 2, pad.t + 36);
+            ctx.fillStyle = 'rgba(245,158,11,0.7)'; ctx.font = 'bold 14px "Outfit", sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('REGIME CHANGE', rcX + rcW / 2, pad.t + ph - 30);
+            ctx.font = '12px "Outfit", sans-serif'; ctx.fillText('(season / supplier shift)', rcX + rcW / 2, pad.t + ph - 14);
 
             // Model lines
             MODELS.forEach((m, mi) => {
