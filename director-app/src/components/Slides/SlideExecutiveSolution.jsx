@@ -86,13 +86,14 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                     const spike2 = Math.floor(N * 0.71);
                     if (i >= spike1 - 1 && i <= spike1 + 1) v = 0.48 + (1 - Math.abs(i - spike1)) * 0.38;
                     if (i >= spike2 - 1 && i <= spike2 + 1) v = 0.48 + (1 - Math.abs(i - spike2)) * 0.38;
-                } else if (type === 'imputation') {
-                    // Near-flat sensor reading with only tiny noise — this makes the drop-out gaps
-                    // and the gold reconstruction line the ONLY visual story
+                } else if (type === 'imputation' || type === 'imputation_clean') {
+                    // Near-flat sensor reading with only tiny noise
                     v = 0.50 + Math.sin(x * Math.PI * 0.6) * 0.04 + (Math.random() - 0.5) * 0.015;
-                    // Force gaps in historical data (handled in render)
-                    if (i > N * 0.25 && i < N * 0.35) v = null;
-                    if (i > N * 0.55 && i < N * 0.6) v = null;
+                    // 'imputation' has null gaps; 'imputation_clean' is the full truth (what LTSM reconstructs)
+                    if (type === 'imputation') {
+                        if (i > N * 0.25 && i < N * 0.35) v = null;
+                        if (i > N * 0.55 && i < N * 0.6) v = null;
+                    }
                 } else {
                     v = 0.45 + Math.sin(x * Math.PI * 3 + t * 0.5) * 0.2 + Math.sin(x * Math.PI * 0.8) * 0.15 + (Math.random() - 0.5) * 0.025;
                 }
@@ -236,8 +237,9 @@ export default function SlideExecutiveSolution({ isExportMode }) {
 
             // Imputation reconstruction (dashed gold line over missing gaps)
             if (task.signal === 'imputation') {
-                // Pass t=0 for imputation so the base wave doesn't scroll, it stays perfectly static
-                const cleanSignal = genSignal('test', N, 0);
+                // Use the SAME formula as the actual sensor (imputation_clean) at the SAME time t
+                // so the gold imputed line is a seamless continuation of the teal sensor — proving LTSM accuracy
+                const cleanSignal = genSignal('imputation_clean', N, ltsmT);
 
                 // Draw Confidence Interval Band exactly over the missing gaps
                 ctx.fillStyle = 'rgba(16, 185, 129, 0.15)'; // Green band
