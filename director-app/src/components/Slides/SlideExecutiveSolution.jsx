@@ -79,12 +79,18 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                 } else if (type === 'trend') {
                     v = 0.2 + x * 0.55 + Math.sin(x * Math.PI * 6 + t) * 0.07 + (Math.random() - 0.5) * 0.03;
                 } else if (type === 'anomaly') {
-                    v = 0.5 + Math.sin(x * Math.PI * 5 + t) * 0.1 + (Math.random() - 0.5) * 0.04;
-                    if (i === Math.floor(N * 0.35) || i === Math.floor(N * 0.71)) v += 0.42;
+                    // Steady, low-noise baseline for a wellbore sensor — makes anomaly spikes unmistakable
+                    v = 0.48 + Math.sin(x * Math.PI * 1.2) * 0.04 + (Math.random() - 0.5) * 0.015;
+                    // Two distinct anomalous spikes at ~35% and ~71% of the timeline
+                    const spike1 = Math.floor(N * 0.35);
+                    const spike2 = Math.floor(N * 0.71);
+                    if (i >= spike1 - 1 && i <= spike1 + 1) v = 0.48 + (1 - Math.abs(i - spike1)) * 0.38;
+                    if (i >= spike2 - 1 && i <= spike2 + 1) v = 0.48 + (1 - Math.abs(i - spike2)) * 0.38;
                 } else if (type === 'imputation') {
-                    // Clean base signal
-                    v = 0.4 + Math.sin(x * Math.PI * 3 + t * 0.8) * 0.2 + Math.cos(x * Math.PI * 7) * 0.08 + (Math.random() - 0.5) * 0.02;
-                    // Force gaps in historical data (will be handled in render)
+                    // Near-flat sensor reading with only tiny noise — this makes the drop-out gaps
+                    // and the gold reconstruction line the ONLY visual story
+                    v = 0.50 + Math.sin(x * Math.PI * 0.6) * 0.04 + (Math.random() - 0.5) * 0.015;
+                    // Force gaps in historical data (handled in render)
                     if (i > N * 0.25 && i < N * 0.35) v = null;
                     if (i > N * 0.55 && i < N * 0.6) v = null;
                 } else {
@@ -162,6 +168,10 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '15px "Outfit", sans-serif'; ctx.textAlign = 'center';
             if (task.signal === 'imputation') {
                 ctx.fillText('SENSOR TELEMETRY', pad.l + pw / 2, pad.t - 16);
+            } else if (task.signal === 'anomaly') {
+                ctx.fillText('LIVE SENSOR STREAM', pad.l + histW / 2, pad.t - 16);
+                ctx.fillStyle = task.color; ctx.font = 'bold 15px "Outfit", sans-serif';
+                ctx.fillText('LTSM ALERT ⚠', pad.l + histW + foreW / 2, pad.t - 16);
             } else {
                 ctx.fillText('HISTORICAL DATA', pad.l + histW / 2, pad.t - 16);
                 ctx.fillStyle = task.color; ctx.font = 'bold 15px "Outfit", sans-serif';
@@ -173,6 +183,12 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                 ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
                 ctx.beginPath(); ctx.moveTo(pad.l + histW, pad.t); ctx.lineTo(pad.l + histW, pad.t + ph); ctx.stroke();
                 ctx.setLineDash([]);
+            }
+
+            // For anomaly: draw a faint red zone on the right to represent the alert panel
+            if (task.signal === 'anomaly') {
+                ctx.fillStyle = 'rgba(239,68,68,0.05)';
+                ctx.fillRect(pad.l + histW, pad.t, foreW, ph);
             }
 
             // Grid
@@ -307,8 +323,8 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                 ctx.restore();
             }
 
-            // Forecast line
-            if (task.signal !== 'imputation') {
+            // Forecast line — only shown for non-anomaly, non-imputation tasks
+            if (task.signal !== 'imputation' && task.signal !== 'anomaly') {
                 ctx.strokeStyle = task.color; ctx.lineWidth = 2.5;
                 ctx.beginPath();
                 const foreSignal = signal.slice(histN);
@@ -329,6 +345,36 @@ export default function SlideExecutiveSolution({ isExportMode }) {
                     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
                 });
                 ctx.stroke();
+            }
+
+            // Anomaly right panel: show risk score bars instead of a forecast line
+            if (task.signal === 'anomaly') {
+                const bars = [
+                    { label: 'Kick Risk', pct: 0.82, color: '#ef4444' },
+                    { label: 'Pipe Stick', pct: 0.56, color: '#f59e0b' },
+                    { label: 'Circ. Loss', pct: 0.91, color: '#ef4444' },
+                    { label: 'Washout', pct: 0.34, color: '#22c55e' },
+                ];
+                const bx = pad.l + histW + 12;
+                const bw = foreW - 24;
+                bars.forEach((b, bi) => {
+                    const by = pad.t + 20 + bi * (ph / 5);
+                    // Label
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '11px "Outfit", sans-serif'; ctx.textAlign = 'left';
+                    ctx.fillText(b.label, bx, by + 12);
+                    // Track
+                    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+                    ctx.fillRect(bx, by + 18, bw, 6);
+                    // Fill
+                    ctx.fillStyle = b.color;
+                    ctx.fillRect(bx, by + 18, bw * b.pct, 6);
+                    // Pct label
+                    ctx.fillStyle = b.color; ctx.textAlign = 'right';
+                    ctx.fillText(Math.round(b.pct * 100) + '%', bx + bw, by + 12);
+                });
+                // Status
+                ctx.fillStyle = '#ef4444'; ctx.font = 'bold 11px "Outfit", sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText('● ANOMALY DETECTED', pad.l + histW + foreW / 2, pad.t + ph - 12);
             }
 
             // Anomaly markers
