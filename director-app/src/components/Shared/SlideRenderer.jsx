@@ -5,6 +5,7 @@ import SlideClassical from "../Slides/SlideClassical";
 import SlideExecutiveProblem from "../Slides/SlideExecutiveProblem";
 import SlideExecutiveSolution from "../Slides/SlideExecutiveSolution";
 import SlideExecutiveCompare from "../Slides/SlideExecutiveCompare";
+import SlideTransformerSection from "../Slides/SlideTransformerSection";
 
 const slides = [
     SlideTitle,               // 0 - Title Slide
@@ -12,7 +13,8 @@ const slides = [
     SlideClassical,           // 2 - Classical Limits
     SlideExecutiveProblem,    // 3 - The Fragmentation Crisis
     SlideExecutiveSolution,   // 4 - The LTSM Solution
-    SlideExecutiveCompare     // 5 - Executive Compare
+    SlideExecutiveCompare,      // 5 - Executive Compare
+    SlideTransformerSection,    // 6 - Section Break: Transformer Architecture
 ];
 
 const PlaceholderSlide = ({ index }) => (
