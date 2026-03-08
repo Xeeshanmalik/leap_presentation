@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
+import { HashRouter, Routes, Route, useParams } from "react-router-dom";
 import { GameStateProvider } from "./hooks/useGameState";
 import AudienceView from "./components/Audience/AudienceView";
 import PresenterView from "./components/Presenter/PresenterView";
@@ -58,7 +58,7 @@ function App() {
     }
 
     return (
-        <BrowserRouter>
+        <HashRouter>
             <Routes>
                 <Route path="/test/:id" element={<TestView />} />
                 <Route path="/presenter" element={
@@ -72,7 +72,7 @@ function App() {
                     </GameStateProvider>
                 } />
             </Routes>
-        </BrowserRouter>
+        </HashRouter>
     );
 }
 
