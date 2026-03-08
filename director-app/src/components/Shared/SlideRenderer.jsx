@@ -8,6 +8,9 @@ import SlideExecutiveCompare from "../Slides/SlideExecutiveCompare";
 import SlideTransformerSection from "../Slides/SlideTransformerSection";
 import SlideTokenization from "../Slides/SlideTokenization";
 import SlideAttentionIntuition from "../Slides/SlideAttentionIntuition";
+import SlideAttentionMechanism from "../Slides/SlideAttentionMechanism";
+import SlideMultiHeadAttention from "../Slides/SlideMultiHeadAttention";
+import SlideFFN from "../Slides/SlideFFN";
 
 const slides = [
     SlideTitle,               // 0 - Title Slide
@@ -19,6 +22,9 @@ const slides = [
     SlideTransformerSection,    // 6 - Section Break: Transformer Architecture
     SlideTokenization,          // 7
     SlideAttentionIntuition,    // 8
+    SlideAttentionMechanism,    // 9
+    SlideMultiHeadAttention,    // 10
+    SlideFFN,                   // 11
 ];
 
 const PlaceholderSlide = ({ index }) => (
