@@ -59,7 +59,7 @@ export default function PresenterView() {
             <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 h-14 bg-bg/85 backdrop-blur-md border-b border-border">
                 <div className="font-playfair text-base font-bold text-text tracking-wider">How Modern AI Understands Data <span className="text-muted ml-2 font-mono text-xs">(PRESENTER)</span></div>
                 <div className="flex gap-4">
-                    <div className="font-mono text-xs text-muted">SLIDE {currentSlideIndex + 1} / 9</div>
+                    <div className="font-mono text-xs text-muted">SLIDE {currentSlideIndex + 1} / 8</div>
                 </div>
             </nav>
 

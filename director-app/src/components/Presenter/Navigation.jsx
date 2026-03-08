@@ -17,10 +17,10 @@ export default function Navigation({ toggleNotes, showNotes, currentSlideIndex, 
                 <ChevronLeft size={24} />
             </button>
             <div className="px-4 font-mono text-sm tracking-widest text-muted">
-                {String(currentSlideIndex + 1).padStart(2, '0')}<span className="opacity-50">/09</span>
+                {String(currentSlideIndex + 1).padStart(2, '0')}<span className="opacity-50">/08</span>
             </div>
             <button
-                onClick={() => setSlide(Math.min(8, currentSlideIndex + 1))}
+                onClick={() => setSlide(Math.min(7, currentSlideIndex + 1))}
                 className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
             >
                 <ChevronRight size={24} />
