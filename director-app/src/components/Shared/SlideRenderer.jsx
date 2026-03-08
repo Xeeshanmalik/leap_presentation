@@ -7,6 +7,7 @@ import SlideExecutiveSolution from "../Slides/SlideExecutiveSolution";
 import SlideExecutiveCompare from "../Slides/SlideExecutiveCompare";
 import SlideTransformerSection from "../Slides/SlideTransformerSection";
 import SlideTokenization from "../Slides/SlideTokenization";
+import SlideAttentionIntuition from "../Slides/SlideAttentionIntuition";
 
 const slides = [
     SlideTitle,               // 0 - Title Slide
@@ -17,6 +18,7 @@ const slides = [
     SlideExecutiveCompare,      // 5 - Executive Compare
     SlideTransformerSection,    // 6 - Section Break: Transformer Architecture
     SlideTokenization,          // 7
+    SlideAttentionIntuition,    // 8
 ];
 
 const PlaceholderSlide = ({ index }) => (
