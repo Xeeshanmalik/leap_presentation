@@ -6,6 +6,8 @@ import SlideExecutiveProblem from "../Slides/SlideExecutiveProblem";
 import SlideExecutiveSolution from "../Slides/SlideExecutiveSolution";
 import SlideExecutiveCompare from "../Slides/SlideExecutiveCompare";
 import SlideTransformerSection from "../Slides/SlideTransformerSection";
+import SlideTokenization from "../Slides/SlideTokenization";
+import SlidePositionalEncoding from "../Slides/SlidePositionalEncoding";
 
 const slides = [
     SlideTitle,               // 0 - Title Slide
@@ -15,6 +17,8 @@ const slides = [
     SlideExecutiveSolution,   // 4 - The LTSM Solution
     SlideExecutiveCompare,      // 5 - Executive Compare
     SlideTransformerSection,    // 6 - Section Break: Transformer Architecture
+    SlideTokenization,          // 7
+    SlidePositionalEncoding,    // 8
 ];
 
 const PlaceholderSlide = ({ index }) => (
