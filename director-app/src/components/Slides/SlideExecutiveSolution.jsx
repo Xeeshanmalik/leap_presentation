@@ -419,18 +419,26 @@ export default function SlideExecutiveSolution({ isExportMode }) {
             }
 
             // Legend
-            const legItems = task.signal === 'imputation'
-                ? [
+            let legItems;
+            if (task.signal === 'imputation') {
+                legItems = [
                     { c: '#00d4ff', label: 'Actual Sensor' },
                     { c: 'rgba(239,68,68,0.4)', label: 'Missing Window' },
                     { c: '#f59e0b', label: 'LTSM Imputed' },
                     { c: 'rgba(16,185,129,0.4)', label: 'Confidence Band' },
-                ]
-                : [
+                ];
+            } else if (task.signal === 'anomaly') {
+                legItems = [
+                    { c: 'rgba(139,146,168,0.7)', label: 'Sensor Stream' },
+                    { c: '#ef4444', label: 'Anomaly Alert' },
+                ];
+            } else {
+                legItems = [
                     { c: 'rgba(139,146,168,0.7)', label: 'Historical' },
                     { c: task.color, label: 'LTSM Forecast' },
                     { c: task.color + '55', label: '95% Confidence' },
                 ];
+            }
 
             legItems.forEach((item, i) => {
                 const lx = W - pad.r + 24;
