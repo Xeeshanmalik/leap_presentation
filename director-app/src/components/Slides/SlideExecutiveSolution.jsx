@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Globe, Zap, Puzzle, Shield, Activity, Eye, TrendingDown, RefreshCcw, Wrench, Package, AlertTriangle, LineChart, WifiOff } from 'lucide-react';
+import { useGameState } from '../../hooks/useGameState';
 
 const TASKS = [
     {
@@ -53,7 +54,11 @@ const CAPABILITIES = [
 ];
 
 export default function SlideExecutiveSolution({ isExportMode }) {
-    const [activeTaskIndex, setActiveTaskIndex] = useState(0);
+    const { role, slideData, setSlideData } = useGameState();
+    const activeTaskIndex = slideData?.[4]?.activeTaskIndex ?? 0;
+    const setActiveTaskIndex = (i) => {
+        if (role === 'presenter') setSlideData(4, { activeTaskIndex: i });
+    };
     const canvasRef = useRef(null);
 
     // LTSM Canvas Animation
